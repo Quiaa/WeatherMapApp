@@ -41,6 +41,9 @@ class MainActivity : AppCompatActivity(), OnMapClickListener {
 
     private var pointAnnotationManager: PointAnnotationManager? = null
     private var pointAnnotation: PointAnnotation? = null
+    private var otherUsersAnnotationManager: PointAnnotationManager? = null // For other users
+    private var userPointAnnotationManager: PointAnnotationManager? = null // For the current user
+    private var userPointAnnotation: PointAnnotation? = null // For the current user
 
     // FusedLocationProviderClient for getting current location
     private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -95,15 +98,23 @@ class MainActivity : AppCompatActivity(), OnMapClickListener {
 
     private fun initializeMap() {
         val annotationApi = binding.mapView.annotations
-        pointAnnotationManager = annotationApi.createPointAnnotationManager()
+        userPointAnnotationManager = annotationApi.createPointAnnotationManager()
+        otherUsersAnnotationManager = annotationApi.createPointAnnotationManager() // Create manager for other users
 
         val mapboxMap = binding.mapView.getMapboxMap()
         mapboxMap.loadStyleUri(Style.MAPBOX_STREETS) { style ->
+            // Add red marker for the current user
             getBitmapFromVectorDrawable(this, R.drawable.ic_red_marker)?.let {
                 style.addImage("red-marker", it)
             }
+            // Add blue marker for other users
+            getBitmapFromVectorDrawable(this, R.drawable.ic_blue_marker)?.let {
+                style.addImage("blue-marker", it)
+            }
+
             binding.mapView.gestures.addOnMapClickListener(this)
             authViewModel.loadUserLocation()
+            authViewModel.fetchAllUsersLocations() // Fetch all users' locations
         }
     }
 
@@ -141,6 +152,22 @@ class MainActivity : AppCompatActivity(), OnMapClickListener {
                 is Resource.Error -> {
                     binding.weatherProgressBar.visibility = View.GONE
                     Toast.makeText(this, "Weather Error: ${resource.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
+        authViewModel.allUsersLocations.observe(this) { resource ->
+            when (resource) {
+                is Resource.Loading -> {
+                    // You can show a loading indicator if you want
+                }
+                is Resource.Success -> {
+                    resource.data?.let { locations ->
+                        placeOtherUsersMarkers(locations)
+                    }
+                }
+                is Resource.Error -> {
+                    Toast.makeText(this, "Error fetching other users: ${resource.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -205,18 +232,30 @@ class MainActivity : AppCompatActivity(), OnMapClickListener {
             }
     }
 
+    private fun placeOtherUsersMarkers(locations: List<UserLocation>) {
+        // Clear old markers first to avoid duplicates
+        otherUsersAnnotationManager?.deleteAll()
+
+        locations.forEach { location ->
+            val point = Point.fromLngLat(location.longitude, location.latitude)
+            val pointAnnotationOptions = PointAnnotationOptions()
+                .withPoint(point)
+                .withIconImage("blue-marker") // Use the blue marker
+                .withIconSize(1.5)
+            otherUsersAnnotationManager?.create(pointAnnotationOptions)
+        }
+    }
 
     private fun placeMarkerOnMap(point: Point) {
-        // This function remains the same
-        if (pointAnnotation == null) {
+        if (userPointAnnotation == null) {
             val pointAnnotationOptions = PointAnnotationOptions()
                 .withPoint(point)
                 .withIconImage("red-marker")
                 .withIconSize(1.5)
-            pointAnnotation = pointAnnotationManager?.create(pointAnnotationOptions)
+            userPointAnnotation = userPointAnnotationManager?.create(pointAnnotationOptions)
         } else {
-            pointAnnotation?.point = point
-            pointAnnotationManager?.update(pointAnnotation!!)
+            userPointAnnotation?.point = point
+            userPointAnnotationManager?.update(userPointAnnotation!!)
         }
     }
 

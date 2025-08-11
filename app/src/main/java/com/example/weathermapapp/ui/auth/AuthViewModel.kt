@@ -26,6 +26,8 @@ class AuthViewModel : ViewModel() {
 
     private val _weatherData = MutableLiveData<Resource<WeatherResponse>>()
     val weatherData: LiveData<Resource<WeatherResponse>> = _weatherData
+    private val _allUsersLocations = MutableLiveData<Resource<List<UserLocation>>>()
+    val allUsersLocations: LiveData<Resource<List<UserLocation>>> = _allUsersLocations
 
     fun register(email: String, pass: String) {
         viewModelScope.launch {
@@ -66,6 +68,14 @@ class AuthViewModel : ViewModel() {
             _weatherData.value = Resource.Loading()
             val result = repository.getWeatherData(lat, lon)
             _weatherData.value = result
+        }
+    }
+
+    fun fetchAllUsersLocations() {
+        viewModelScope.launch {
+            _allUsersLocations.value = Resource.Loading()
+            val result = repository.getAllUsersLocations()
+            _allUsersLocations.value = result
         }
     }
 }

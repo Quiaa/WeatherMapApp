@@ -17,6 +17,7 @@ interface AuthRepository {
     suspend fun saveUserLocation(location: UserLocation): Resource<Unit>
     suspend fun getUserLocation(): Resource<UserLocation?>
     suspend fun getWeatherData(lat: Double, lon: Double): Resource<WeatherResponse>
+    suspend fun getAllUsersLocations(): Resource<List<UserLocation>>
 }
 
 class AuthRepositoryImpl(
@@ -96,6 +97,23 @@ class AuthRepositoryImpl(
         } catch (e: Exception) {
             // If there's a network error or other exception
             Resource.Error(e.message ?: "An unknown network error occurred.")
+        }
+    }
+    override suspend fun getAllUsersLocations(): Resource<List<UserLocation>> {
+        return try {
+            val currentUserId = firebaseAuth.currentUser?.uid
+            val documents = firestore.collection("users").get().await()
+            val locations = documents.documents.mapNotNull { document ->
+                // We don't want to show the current user's location in this list again
+                if (document.id != currentUserId) {
+                    document.toObject(UserLocation::class.java)
+                } else {
+                    null
+                }
+            }
+            Resource.Success(locations)
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Failed to retrieve all user locations.")
         }
     }
 }
