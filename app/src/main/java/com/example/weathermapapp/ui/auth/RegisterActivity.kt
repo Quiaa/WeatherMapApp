@@ -37,7 +37,14 @@ class RegisterActivity : AppCompatActivity() {
             }
         }
 
-        // TODO: Add click listener for tvGoToLogin to open LoginActivity
+        // Add click listener for tvGoToLogin to open LoginActivity
+        binding.tvGoToLogin.setOnClickListener {
+            // Start LoginActivity
+            val intent = Intent(this, LoginActivity::class.java)
+            startActivity(intent)
+            // Optional: finish this activity if you don't want the user to go back to it
+            finish()
+        }
     }
 
     private fun observeViewModel() {

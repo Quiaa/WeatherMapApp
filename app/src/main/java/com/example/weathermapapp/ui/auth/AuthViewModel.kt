@@ -12,27 +12,36 @@ import kotlinx.coroutines.launch
 
 class AuthViewModel : ViewModel() {
 
-    // We instantiate our repository. In a larger app, we would use dependency injection.
     private val repository: AuthRepository = AuthRepositoryImpl()
 
-    // LiveData to hold the state of the registration process.
+    // LiveData for Registration
     private val _registrationState = MutableLiveData<Resource<AuthResult>>()
     val registrationState: LiveData<Resource<AuthResult>> = _registrationState
 
-    /**
-     * Function to register a user.
-     * It launches a coroutine to call the suspend function in the repository.
-     */
-    fun register(email: String, pass: String) {
-        // We use viewModelScope to launch a coroutine that is automatically
-        // cancelled when the ViewModel is cleared.
-        viewModelScope.launch {
-            // Set the state to Loading before starting the operation.
-            _registrationState.value = Resource.Loading()
+    // LiveData for Login
+    private val _loginState = MutableLiveData<Resource<AuthResult>>()
+    val loginState: LiveData<Resource<AuthResult>> = _loginState
 
-            // Call the repository function and update the LiveData with the result.
+    fun register(email: String, pass: String) {
+        viewModelScope.launch {
+            _registrationState.value = Resource.Loading()
             val result = repository.registerUser(email, pass)
             _registrationState.value = result
+        }
+    }
+
+    /**
+     * Function to log in a user.
+     * It launches a coroutine to call the suspend function in the repository.
+     */
+    fun login(email: String, pass: String) {
+        viewModelScope.launch {
+            // Set the state to Loading before starting the operation.
+            _loginState.value = Resource.Loading()
+
+            // Call the repository function and update the LiveData with the result.
+            val result = repository.loginUser(email, pass)
+            _loginState.value = result
         }
     }
 }
