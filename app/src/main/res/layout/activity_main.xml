@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
@@ -10,47 +10,32 @@
     <com.mapbox.maps.MapView
         android:id="@+id/mapView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:layout_height="match_parent" />
 
-    <Button
-        android:id="@+id/btnLogout"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:text="Logout"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <ImageButton
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/btnCurrentLocation"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_gravity="end|bottom"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
+        android:layout_marginBottom="170dp"
         android:src="@android:drawable/ic_menu_mylocation"
-        app:layout_constraintBottom_toTopOf="@id/weatherCard"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:tint="@color/black" />
+        app:backgroundTint="@color/white"
+        app:tint="?attr/colorPrimary"
+        app:fabSize="normal" />
 
     <androidx.cardview.widget.CardView
         android:id="@+id/weatherCard"
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="24dp"
         android:visibility="gone"
-        app:cardCornerRadius="8dp"
-        app:cardElevation="4dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="8dp"
+        app:layout_behavior="com.google.android.material.behavior.HideBottomViewOnScrollBehavior"
         tools:visibility="visible">
 
         <androidx.constraintlayout.widget.ConstraintLayout
@@ -62,8 +47,8 @@
                 android:id="@+id/tvLocationName"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:textColor="@color/black"
-                android:textSize="20sp"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="22sp"
                 android:textStyle="bold"
                 app:layout_constraintEnd_toStartOf="@+id/ivWeatherIcon"
                 app:layout_constraintStart_toStartOf="parent"
@@ -75,6 +60,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
+                android:textColor="?android:attr/textColorSecondary"
                 android:textSize="16sp"
                 app:layout_constraintEnd_toEndOf="@+id/tvLocationName"
                 app:layout_constraintStart_toStartOf="parent"
@@ -86,19 +72,34 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:textColor="@color/black"
-                android:textSize="24sp"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="36sp"
+                android:textStyle="bold"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/tvWeatherDescription"
                 tools:text="25°C" />
 
             <ImageView
                 android:id="@+id/ivWeatherIcon"
-                android:layout_width="64dp"
-                android:layout_height="64dp"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias="0.0"
                 tools:src="@android:drawable/ic_dialog_info" />
+
+            <ImageButton
+                android:id="@+id/btnLogout"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Logout"
+                android:padding="8dp"
+                android:src="@android:drawable/ic_lock_power_off"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:tint="?android:attr/textColorSecondary" />
 
             <ProgressBar
                 android:id="@+id/weatherProgressBar"
@@ -113,4 +114,4 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.cardview.widget.CardView>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
