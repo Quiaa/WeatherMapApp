@@ -33,11 +33,12 @@ import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
 import com.mapbox.maps.plugin.annotation.generated.createPointAnnotationManager
 import com.mapbox.maps.plugin.gestures.OnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
+import com.example.weathermapapp.ui.map.MapViewModel
 
 class MainActivity : AppCompatActivity(), OnMapClickListener {
 
     private lateinit var binding: ActivityMainBinding
-    private val authViewModel: AuthViewModel by viewModels()
+    private val mapViewModel: MapViewModel by viewModels()
 
     private var pointAnnotationManager: PointAnnotationManager? = null
     private var pointAnnotation: PointAnnotation? = null
@@ -81,10 +82,9 @@ class MainActivity : AppCompatActivity(), OnMapClickListener {
         observeViewModels()
     }
 
-    // Renamed to handle all click listeners in one place
     private fun setupClickListeners() {
         binding.btnLogout.setOnClickListener {
-            authViewModel.logout()
+            mapViewModel.logout()
             val intent = Intent(this, LoginActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             startActivity(intent)
@@ -113,20 +113,20 @@ class MainActivity : AppCompatActivity(), OnMapClickListener {
             }
 
             binding.mapView.gestures.addOnMapClickListener(this)
-            authViewModel.loadUserLocation()
-            authViewModel.fetchAllUsersLocations() // Fetch all users' locations
+            mapViewModel.loadUserLocation()
+            mapViewModel.fetchAllUsersLocations()
         }
     }
 
     private fun observeViewModels() {
         // Observer for user location
-        authViewModel.userLocation.observe(this) { resource ->
+        mapViewModel.userLocation.observe(this) { resource ->
             if (resource is Resource.Success) {
                 resource.data?.let { location ->
                     val userPoint = Point.fromLngLat(location.longitude, location.latitude)
                     placeMarkerOnMap(userPoint)
                     moveCameraToPoint(userPoint)
-                    authViewModel.fetchWeatherData(location.latitude, location.longitude)
+                    mapViewModel.fetchWeatherData(location.latitude, location.longitude)
                 } ?: run {
                     val defaultPoint = Point.fromLngLat(28.9784, 41.0082) // Default to Istanbul
                     moveCameraToPoint(defaultPoint, 9.0)
@@ -139,7 +139,7 @@ class MainActivity : AppCompatActivity(), OnMapClickListener {
         }
 
         // Observer for weather data
-        authViewModel.weatherData.observe(this) { resource ->
+        mapViewModel.weatherData.observe(this) { resource ->
             when (resource) {
                 is Resource.Loading -> {
                     binding.weatherCard.visibility = View.VISIBLE
@@ -156,7 +156,8 @@ class MainActivity : AppCompatActivity(), OnMapClickListener {
             }
         }
 
-        authViewModel.allUsersLocations.observe(this) { resource ->
+        // Observer for all users' locations
+        mapViewModel.allUsersLocations.observe(this) { resource ->
             when (resource) {
                 is Resource.Loading -> {
                     // You can show a loading indicator if you want
@@ -188,8 +189,8 @@ class MainActivity : AppCompatActivity(), OnMapClickListener {
     override fun onMapClick(point: Point): Boolean {
         placeMarkerOnMap(point)
         val location = UserLocation(latitude = point.latitude(), longitude = point.longitude())
-        authViewModel.saveLocation(location)
-        authViewModel.fetchWeatherData(point.latitude(), point.longitude())
+        mapViewModel.saveLocation(location)
+        mapViewModel.fetchWeatherData(point.latitude(), point.longitude())
         return true
     }
 
