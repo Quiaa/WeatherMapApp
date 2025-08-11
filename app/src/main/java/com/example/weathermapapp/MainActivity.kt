@@ -1,66 +1,43 @@
 package com.example.weathermapapp
 
 import android.Manifest
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
 import com.bumptech.glide.Glide
 import com.example.weathermapapp.data.model.UserLocation
 import com.example.weathermapapp.data.model.WeatherResponse
 import com.example.weathermapapp.databinding.ActivityMainBinding
 import com.example.weathermapapp.ui.auth.LoginActivity
-import com.example.weathermapapp.util.Resource
-import com.google.android.gms.location.*
-import com.mapbox.geojson.Point
-import com.mapbox.maps.CameraOptions
-import com.mapbox.maps.Style
-import com.mapbox.maps.plugin.annotation.annotations
-import com.mapbox.maps.plugin.annotation.generated.PointAnnotation
-import com.mapbox.maps.plugin.annotation.generated.PointAnnotationManager
-import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
-import com.mapbox.maps.plugin.annotation.generated.createPointAnnotationManager
-import com.mapbox.maps.plugin.gestures.OnMapClickListener
-import com.mapbox.maps.plugin.gestures.gestures
+import com.example.weathermapapp.ui.map.MapManager
 import com.example.weathermapapp.ui.map.MapViewModel
+import com.example.weathermapapp.util.Resource
+import com.mapbox.geojson.Point
+import com.mapbox.maps.plugin.gestures.OnMapClickListener
 
 class MainActivity : AppCompatActivity(), OnMapClickListener {
 
     private lateinit var binding: ActivityMainBinding
     private val mapViewModel: MapViewModel by viewModels()
-    private var otherUsersAnnotationManager: PointAnnotationManager? = null // For other users
-    private var userPointAnnotationManager: PointAnnotationManager? = null // For the current user
-    private var userPointAnnotation: PointAnnotation? = null // For the current user
+    private lateinit var mapManager: MapManager
 
-    // FusedLocationProviderClient for getting current location
-    private lateinit var fusedLocationClient: FusedLocationProviderClient
-
-    // ActivityResultLauncher for handling permission requests
     private val locationPermissionRequest = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        when {
-            permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false) -> {
-                // Precise location access granted.
-                getCurrentLocation()
-            }
-            permissions.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false) -> {
-                // Only approximate location access granted.
-                getCurrentLocation()
-            }
-            else -> {
-                // No location access granted.
-                Toast.makeText(this, "Location permission denied", Toast.LENGTH_SHORT).show()
-            }
+        if (permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false) ||
+            permissions.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false)
+        ) {
+            // Permission granted, delegate the action to the ViewModel.
+            mapViewModel.fetchCurrentDeviceLocation()
+        } else {
+            // Permission denied, show a toast.
+            Toast.makeText(this, "Location permission denied", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -69,12 +46,24 @@ class MainActivity : AppCompatActivity(), OnMapClickListener {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Initialize FusedLocationProviderClient
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        // Initialize the MapManager to handle all map-related operations.
+        mapManager = MapManager(this, binding.mapView)
+        mapManager.initialize(this) {
+            // This lambda block is executed once the map style has been loaded.
+            // Now it's safe to load location data.
+            mapViewModel.loadUserLocation()
+            mapViewModel.fetchAllUsersLocations()
+        }
 
-        initializeMap()
-        setupClickListeners() // Renamed from setupLogoutButton
+        setupClickListeners()
         observeViewModels()
+    }
+    override fun onMapClick(point: Point): Boolean {
+        mapManager.placeUserMarker(point) // Visually update the marker on the map.
+        val location = UserLocation(latitude = point.latitude(), longitude = point.longitude())
+        mapViewModel.saveLocation(location) // Save the new location via ViewModel.
+        mapViewModel.fetchWeatherData(point.latitude(), point.longitude()) // Fetch weather for the new location.
+        return true
     }
 
     private fun setupClickListeners() {
@@ -87,53 +76,37 @@ class MainActivity : AppCompatActivity(), OnMapClickListener {
         }
 
         binding.btnCurrentLocation.setOnClickListener {
-            checkLocationPermission()
-        }
-    }
-
-    private fun initializeMap() {
-        val annotationApi = binding.mapView.annotations
-        userPointAnnotationManager = annotationApi.createPointAnnotationManager()
-        otherUsersAnnotationManager = annotationApi.createPointAnnotationManager() // Create manager for other users
-
-        val mapboxMap = binding.mapView.getMapboxMap()
-        mapboxMap.loadStyleUri(Style.MAPBOX_STREETS) { style ->
-            // Add red marker for the current user
-            getBitmapFromVectorDrawable(this, R.drawable.ic_red_marker)?.let {
-                style.addImage("red-marker", it)
-            }
-            // Add blue marker for other users
-            getBitmapFromVectorDrawable(this, R.drawable.ic_blue_marker)?.let {
-                style.addImage("blue-marker", it)
-            }
-
-            binding.mapView.gestures.addOnMapClickListener(this)
-            mapViewModel.loadUserLocation()
-            mapViewModel.fetchAllUsersLocations()
+            checkAndRequestLocationPermission()
         }
     }
 
     private fun observeViewModels() {
-        // Observer for user location
+        // Observer for the current user's saved location from Firestore.
         mapViewModel.userLocation.observe(this) { resource ->
-            if (resource is Resource.Success) {
-                resource.data?.let { location ->
-                    val userPoint = Point.fromLngLat(location.longitude, location.latitude)
-                    placeMarkerOnMap(userPoint)
-                    moveCameraToPoint(userPoint)
-                    mapViewModel.fetchWeatherData(location.latitude, location.longitude)
-                } ?: run {
-                    val defaultPoint = Point.fromLngLat(28.9784, 41.0082) // Default to Istanbul
-                    moveCameraToPoint(defaultPoint, 9.0)
+            when (resource) {
+                is Resource.Success -> {
+                    resource.data?.let { location ->
+                        val userPoint = Point.fromLngLat(location.longitude, location.latitude)
+                        mapManager.placeUserMarker(userPoint)
+                        mapManager.moveCamera(userPoint)
+                        mapViewModel.fetchWeatherData(location.latitude, location.longitude)
+                    } ?: run {
+                        // If no location is saved, move camera to a default location.
+                        val defaultPoint = Point.fromLngLat(28.9784, 41.0082) // Istanbul
+                        mapManager.moveCamera(defaultPoint, 9.0)
+                    }
                 }
-            } else if (resource is Resource.Error) {
-                Toast.makeText(this, resource.message, Toast.LENGTH_LONG).show()
-                val defaultPoint = Point.fromLngLat(28.9784, 41.0082) // Default to Istanbul
-                moveCameraToPoint(defaultPoint, 9.0)
+                is Resource.Error -> {
+                    Toast.makeText(this, resource.message, Toast.LENGTH_LONG).show()
+                    val defaultPoint = Point.fromLngLat(28.9784, 41.0082)
+                    mapManager.moveCamera(defaultPoint, 9.0)
+                }
+                is Resource.Loading -> { /* Optionally handle loading state */
+                }
             }
         }
 
-        // Observer for weather data
+        // Observer for weather data updates.
         mapViewModel.weatherData.observe(this) { resource ->
             when (resource) {
                 is Resource.Loading -> {
@@ -151,19 +124,33 @@ class MainActivity : AppCompatActivity(), OnMapClickListener {
             }
         }
 
-        // Observer for all users' locations
+        // Observer for all other users' locations.
         mapViewModel.allUsersLocations.observe(this) { resource ->
-            when (resource) {
-                is Resource.Loading -> {
-                    // You can show a loading indicator if you want
+            if (resource is Resource.Success) {
+                resource.data?.let { locations ->
+                    val points = locations.map { Point.fromLngLat(it.longitude, it.latitude) }
+                    mapManager.placeOtherUsersMarkers(points)
                 }
+            } else if (resource is Resource.Error) {
+                Toast.makeText(this, "Error fetching other users: ${resource.message}", Toast.LENGTH_LONG)
+                    .show()
+            }
+        }
+
+        // Observer for the result of a current device location request.
+        mapViewModel.currentDeviceLocation.observe(this) { resource ->
+            when (resource) {
                 is Resource.Success -> {
-                    resource.data?.let { locations ->
-                        placeOtherUsersMarkers(locations)
+                    resource.data?.let { point ->
+                        mapManager.moveCamera(point)
+                        // Trigger a map click to also update weather, marker, and saved location.
+                        onMapClick(point)
                     }
                 }
                 is Resource.Error -> {
-                    Toast.makeText(this, "Error fetching other users: ${resource.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, resource.message, Toast.LENGTH_SHORT).show()
+                }
+                is Resource.Loading -> { /* Optionally show a progress indicator */
                 }
             }
         }
@@ -171,7 +158,8 @@ class MainActivity : AppCompatActivity(), OnMapClickListener {
 
     private fun updateWeatherUI(data: WeatherResponse) {
         binding.tvLocationName.text = data.name
-        binding.tvWeatherDescription.text = data.weather.firstOrNull()?.description?.replaceFirstChar { it.uppercase() } ?: "N/A"
+        binding.tvWeatherDescription.text =
+            data.weather.firstOrNull()?.description?.replaceFirstChar { it.uppercase() } ?: "N/A"
         binding.tvTemperature.text = "${data.main.temp.toInt()}°C"
 
         val iconCode = data.weather.firstOrNull()?.icon
@@ -181,101 +169,18 @@ class MainActivity : AppCompatActivity(), OnMapClickListener {
             .into(binding.ivWeatherIcon)
     }
 
-    override fun onMapClick(point: Point): Boolean {
-        placeMarkerOnMap(point)
-        val location = UserLocation(latitude = point.latitude(), longitude = point.longitude())
-        mapViewModel.saveLocation(location)
-        mapViewModel.fetchWeatherData(point.latitude(), point.longitude())
-        return true
-    }
 
-    // New function to check for location permissions
-    private fun checkLocationPermission() {
-        if (ContextCompat.checkSelfPermission(
-                this, Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
+
+    private fun checkAndRequestLocationPermission() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
         ) {
-            getCurrentLocation()
+            mapViewModel.fetchCurrentDeviceLocation()
         } else {
-            // You can directly ask for the permission.
             locationPermissionRequest.launch(
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                )
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
             )
         }
-    }
-
-    // New function to get the current location
-    private fun getCurrentLocation() {
-        // Double-check permission before proceeding
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, "Permission not granted, cannot get location.", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        fusedLocationClient.lastLocation
-            .addOnSuccessListener { location ->
-                if (location != null) {
-                    val currentPoint = Point.fromLngLat(location.longitude, location.latitude)
-                    moveCameraToPoint(currentPoint)
-                    onMapClick(currentPoint) // Reuse onMapClick logic to update marker, weather, and save location
-                } else {
-                    Toast.makeText(this, "Could not retrieve location. Turn on GPS.", Toast.LENGTH_SHORT).show()
-                }
-            }
-    }
-
-    private fun placeOtherUsersMarkers(locations: List<UserLocation>) {
-        // Clear old markers first to avoid duplicates
-        otherUsersAnnotationManager?.deleteAll()
-
-        locations.forEach { location ->
-            val point = Point.fromLngLat(location.longitude, location.latitude)
-            val pointAnnotationOptions = PointAnnotationOptions()
-                .withPoint(point)
-                .withIconImage("blue-marker") // Use the blue marker
-                .withIconSize(1.5)
-            otherUsersAnnotationManager?.create(pointAnnotationOptions)
-        }
-    }
-
-    private fun placeMarkerOnMap(point: Point) {
-        if (userPointAnnotation == null) {
-            val pointAnnotationOptions = PointAnnotationOptions()
-                .withPoint(point)
-                .withIconImage("red-marker")
-                .withIconSize(1.5)
-            userPointAnnotation = userPointAnnotationManager?.create(pointAnnotationOptions)
-        } else {
-            userPointAnnotation?.point = point
-            userPointAnnotationManager?.update(userPointAnnotation!!)
-        }
-    }
-
-    private fun moveCameraToPoint(point: Point, zoom: Double = 12.0) {
-        // This function remains the same
-        val cameraOptions = CameraOptions.Builder()
-            .center(point)
-            .zoom(zoom)
-            .build()
-        binding.mapView.getMapboxMap().setCamera(cameraOptions)
-    }
-
-    private fun getBitmapFromVectorDrawable(context: Context, drawableId: Int): Bitmap? {
-        // This function remains the same
-        val drawable = AppCompatResources.getDrawable(context, drawableId) ?: return null
-        val bitmap = Bitmap.createBitmap(
-            drawable.intrinsicWidth,
-            drawable.intrinsicHeight,
-            Bitmap.Config.ARGB_8888
-        )
-        val canvas = Canvas(bitmap)
-        drawable.setBounds(0, 0, canvas.width, canvas.height)
-        drawable.draw(canvas)
-        return bitmap
     }
 
     // --- MapView Lifecycle Management ---
