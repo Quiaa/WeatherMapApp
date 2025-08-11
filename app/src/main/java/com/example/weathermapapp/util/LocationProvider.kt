@@ -13,6 +13,8 @@ class LocationProvider(private val context: Context) {
     private val fusedLocationClient: FusedLocationProviderClient =
         LocationServices.getFusedLocationProviderClient(context)
 
+    private var locationCallback: LocationCallback? = null
+
     fun isLocationPermissionGranted(): Boolean {
         return ContextCompat.checkSelfPermission(
             context, Manifest.permission.ACCESS_FINE_LOCATION
@@ -75,6 +77,44 @@ class LocationProvider(private val context: Context) {
             fusedLocationClient.requestLocationUpdates(
                 locationRequest, locationCallback, Looper.myLooper()
             )
+        }
+    }
+
+    /**
+     * Starts continuous location updates.
+     * @param onLocationUpdated A callback function that will be invoked with the new location.
+     */
+    fun startLocationUpdates(onLocationUpdated: (Point) -> Unit) {
+        if (!isLocationPermissionGranted()) return
+
+        val locationRequest = LocationRequest.create().apply {
+            priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+            interval = 10000 // Update every 10 seconds
+            fastestInterval = 5000 // The fastest update interval
+        }
+
+        locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult) {
+                locationResult.lastLocation?.let {
+                    val currentPoint = Point.fromLngLat(it.longitude, it.latitude)
+                    onLocationUpdated(currentPoint)
+                }
+            }
+        }
+
+        fusedLocationClient.requestLocationUpdates(
+            locationRequest,
+            locationCallback!!,
+            Looper.myLooper()
+        )
+    }
+
+    /**
+     * Stops continuous location updates.
+     */
+    fun stopLocationUpdates() {
+        locationCallback?.let {
+            fusedLocationClient.removeLocationUpdates(it)
         }
     }
 }

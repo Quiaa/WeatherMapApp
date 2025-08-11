@@ -3,70 +3,105 @@ package com.example.weathermapapp.ui.map
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.widget.Toast
 import androidx.appcompat.content.res.AppCompatResources
 import com.example.weathermapapp.R
+import com.example.weathermapapp.data.model.UserLocation
+import com.google.gson.JsonObject
 import com.mapbox.geojson.Point
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapView
 import com.mapbox.maps.Style
 import com.mapbox.maps.plugin.annotation.annotations
-import com.mapbox.maps.plugin.annotation.generated.PointAnnotation
-import com.mapbox.maps.plugin.annotation.generated.PointAnnotationManager
-import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
-import com.mapbox.maps.plugin.annotation.generated.createPointAnnotationManager
+import com.mapbox.maps.plugin.annotation.generated.*
 import com.mapbox.maps.plugin.gestures.OnMapClickListener
 import com.mapbox.maps.plugin.gestures.gestures
 
 class MapManager(private val context: Context, private val mapView: MapView) {
 
-    private var userPointAnnotationManager: PointAnnotationManager? = null
-    private var otherUsersAnnotationManager: PointAnnotationManager? = null
-    private var userPointAnnotation: PointAnnotation? = null
+    private var selectedLocationAnnManager: PointAnnotationManager? = null // Red (weather) marker
+    private var myRealtimeLocationAnnManager: PointAnnotationManager? = null // Green (current location) marker
+    private var otherRealtimeLocationsAnnManager: PointAnnotationManager? = null // Blue (other users) markers
+
+    private var selectedLocationAnnotation: PointAnnotation? = null
+    private var myRealtimeLocationAnnotation: PointAnnotation? = null
 
     fun initialize(onMapClick: OnMapClickListener, onStyleLoaded: () -> Unit) {
         val annotationApi = mapView.annotations
-        userPointAnnotationManager = annotationApi.createPointAnnotationManager()
-        otherUsersAnnotationManager = annotationApi.createPointAnnotationManager()
+        selectedLocationAnnManager = annotationApi.createPointAnnotationManager()
+        myRealtimeLocationAnnManager = annotationApi.createPointAnnotationManager()
+        otherRealtimeLocationsAnnManager = annotationApi.createPointAnnotationManager()
+
+        addAnnotationClickListener()
 
         mapView.getMapboxMap().loadStyleUri(Style.MAPBOX_STREETS) { style ->
-            // Add marker images to the style
-            getBitmapFromVectorDrawable(R.drawable.ic_red_marker)?.let {
-                style.addImage("red-marker", it)
-            }
-            getBitmapFromVectorDrawable(R.drawable.ic_blue_marker)?.let {
-                style.addImage("blue-marker", it)
-            }
 
-            // Set the map click listener (CORRECTED LINE)
+            getBitmapFromVectorDrawable(R.drawable.ic_red_marker)?.let { style.addImage("red-marker", it) }
+            getBitmapFromVectorDrawable(R.drawable.ic_green_marker)?.let { style.addImage("green-marker", it) }
+            getBitmapFromVectorDrawable(R.drawable.ic_blue_marker)?.let { style.addImage("blue-marker", it) }
+
             mapView.gestures.addOnMapClickListener(onMapClick)
 
-            // Notify that the style has loaded
             onStyleLoaded()
         }
     }
 
-    fun placeUserMarker(point: Point) {
-        if (userPointAnnotation == null) {
-            val pointAnnotationOptions = PointAnnotationOptions()
-                .withPoint(point)
-                .withIconImage("red-marker")
-                .withIconSize(1.5)
-            userPointAnnotation = userPointAnnotationManager?.create(pointAnnotationOptions)
+
+    fun updateSelectedLocationMarker(location: UserLocation) {
+        val point = Point.fromLngLat(location.longitude, location.latitude)
+
+        val data = JsonObject().apply { addProperty("name", "Weather for ${location.userName}'s choice") }
+
+        selectedLocationAnnotation?.let { selectedLocationAnnManager?.delete(it) }
+
+        val options = PointAnnotationOptions()
+            .withPoint(point)
+            .withIconImage("red-marker")
+            .withIconSize(1.5)
+            .withData(data)
+
+        selectedLocationAnnotation = selectedLocationAnnManager?.create(options)
+    }
+
+
+    fun updateMyRealtimeLocationMarker(location: UserLocation) {
+        val point = Point.fromLngLat(location.longitude, location.latitude)
+        val data = JsonObject().apply { addProperty("name", "Me: ${location.userName}") }
+
+        if (myRealtimeLocationAnnotation == null) {
+            val options = PointAnnotationOptions().withPoint(point).withIconImage("green-marker").withIconSize(1.5).withData(data)
+            myRealtimeLocationAnnotation = myRealtimeLocationAnnManager?.create(options)
         } else {
-            userPointAnnotation?.point = point
-            userPointAnnotationManager?.update(userPointAnnotation!!)
+            myRealtimeLocationAnnotation?.point = point
+            myRealtimeLocationAnnManager?.update(myRealtimeLocationAnnotation!!)
         }
     }
 
-    fun placeOtherUsersMarkers(points: List<Point>) {
-        otherUsersAnnotationManager?.deleteAll()
-        val annotationOptions = points.map { point ->
+
+    fun updateOtherUsersRealtimeMarkers(locations: List<UserLocation>) {
+        otherRealtimeLocationsAnnManager?.deleteAll()
+        val optionsList = locations.map { location ->
+            val data = JsonObject().apply { addProperty("name", location.userName) }
             PointAnnotationOptions()
-                .withPoint(point)
+                .withPoint(Point.fromLngLat(location.longitude, location.latitude))
                 .withIconImage("blue-marker")
                 .withIconSize(1.5)
+                .withData(data)
         }
-        otherUsersAnnotationManager?.create(annotationOptions)
+        otherRealtimeLocationsAnnManager?.create(optionsList)
+    }
+
+    private fun addAnnotationClickListener() {
+        val listener = OnPointAnnotationClickListener { annotation ->
+            annotation.getData()?.let {
+                val name = it.asJsonObject.get("name").asString
+                Toast.makeText(context, name, Toast.LENGTH_LONG).show()
+            }
+            true
+        }
+        selectedLocationAnnManager?.addClickListener(listener)
+        myRealtimeLocationAnnManager?.addClickListener(listener)
+        otherRealtimeLocationsAnnManager?.addClickListener(listener)
     }
 
     fun moveCamera(point: Point, zoom: Double = 12.0) {

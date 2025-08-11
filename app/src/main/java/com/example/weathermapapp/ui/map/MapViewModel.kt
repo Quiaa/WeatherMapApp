@@ -17,6 +17,8 @@ import com.example.weathermapapp.util.Resource
 import kotlinx.coroutines.launch
 import com.example.weathermapapp.util.LocationProvider
 import com.mapbox.geojson.Point
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 class MapViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -40,6 +42,14 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
     // LiveData for all other users' locations
     private val _allUsersLocations = MutableLiveData<Resource<List<UserLocation>>>()
     val allUsersLocations: LiveData<Resource<List<UserLocation>>> = _allUsersLocations
+    private val _realtimeAllUsersLocations = MutableLiveData<Resource<List<UserLocation>>>()
+    val realtimeAllUsersLocations: LiveData<Resource<List<UserLocation>>> = _realtimeAllUsersLocations
+
+    private val _myRealtimeLocation = MutableLiveData<UserLocation>()
+    val myRealtimeLocation: LiveData<UserLocation> = _myRealtimeLocation
+
+    private val _otherUsersRealtimeLocations = MutableLiveData<List<UserLocation>>()
+    val otherUsersRealtimeLocations: LiveData<List<UserLocation>> = _otherUsersRealtimeLocations
 
     fun fetchCurrentDeviceLocation() {
         _currentDeviceLocation.value = Resource.Loading()
@@ -63,12 +73,13 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun loadUserLocation() {
-        viewModelScope.launch {
-            _userLocation.value = Resource.Loading()
-            val result = userRepository.getUserLocation()
-            _userLocation.value = result
-        }
+    fun observeUserLocation() {
+        _userLocation.value = Resource.Loading()
+        userRepository.getUserLocation()
+            .onEach { result ->
+                _userLocation.value = result
+            }
+            .launchIn(viewModelScope)
     }
 
     fun fetchWeatherData(lat: Double, lon: Double) {
@@ -85,5 +96,40 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
             val result = userRepository.getAllUsersLocations()
             _allUsersLocations.value = result
         }
+    }
+    /**
+     * Starts listening for real-time location updates from the device
+     * and saves them to the repository.
+     */
+    fun startRealtimeLocationUpdates() {
+        locationProvider.startLocationUpdates { point ->
+            viewModelScope.launch {
+                val userLocation = UserLocation(point.latitude(), point.longitude())
+                userRepository.saveRealtimeUserLocation(userLocation)
+            }
+        }
+    }
+
+    /**
+     * Stops listening for real-time location updates.
+     */
+    fun stopRealtimeLocationUpdates() {
+        locationProvider.stopLocationUpdates()
+    }
+
+    /**
+     * Starts observing the real-time locations of all other users from the repository.
+     */
+    fun observeRealtimeUsersLocations() {
+        val myId = authRepository.getCurrentUserId()
+        userRepository.getRealtimeAllUsersLocations()
+            .onEach { result ->
+                if (result is Resource.Success) {
+                    val allLocations = result.data ?: emptyList()
+                    _myRealtimeLocation.value = allLocations.firstOrNull { it.userId == myId }
+                    _otherUsersRealtimeLocations.value = allLocations.filter { it.userId != myId }
+                }
+            }
+            .launchIn(viewModelScope)
     }
 }

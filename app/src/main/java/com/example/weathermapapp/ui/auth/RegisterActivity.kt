@@ -26,12 +26,12 @@ class RegisterActivity : AppCompatActivity() {
 
     private fun setupClickListeners() {
         binding.btnRegister.setOnClickListener {
+            val name = binding.etName.text.toString().trim()
             val email = binding.etEmail.text.toString().trim()
             val password = binding.etPassword.text.toString().trim()
 
-            // Basic validation
-            if (email.isNotEmpty() && password.isNotEmpty()) {
-                viewModel.register(email, password)
+            if (email.isNotEmpty() && password.isNotEmpty() && name.isNotEmpty()) {
+                viewModel.register(email, password, name)
             } else {
                 Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show()
             }

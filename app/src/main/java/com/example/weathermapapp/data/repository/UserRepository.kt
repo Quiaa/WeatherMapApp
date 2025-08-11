@@ -2,15 +2,21 @@ package com.example.weathermapapp.data.repository
 
 import com.example.weathermapapp.data.model.UserLocation
 import com.example.weathermapapp.util.Resource
+import kotlinx.coroutines.flow.Flow
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import com.google.firebase.firestore.ktx.snapshots
+import com.google.firebase.firestore.ktx.toObject
+import kotlinx.coroutines.flow.map
 
 // Interface for UserRepository
 interface UserRepository {
     suspend fun saveUserLocation(location: UserLocation): Resource<Unit>
-    suspend fun getUserLocation(): Resource<UserLocation?>
+    fun getUserLocation(): Flow<Resource<UserLocation?>>
     suspend fun getAllUsersLocations(): Resource<List<UserLocation>>
+    suspend fun saveRealtimeUserLocation(location: UserLocation): Resource<Unit>
+    fun getRealtimeAllUsersLocations(): Flow<Resource<List<UserLocation>>>
 }
 
 // Implementation of UserRepository
@@ -19,45 +25,68 @@ class UserRepositoryImpl(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) : UserRepository {
 
-    override suspend fun saveUserLocation(location: UserLocation): Resource<Unit> {
-        val uid = firebaseAuth.currentUser?.uid
-            ?: return Resource.Error("User not logged in.")
-
+    private suspend fun getUserName(uid: String): String {
         return try {
-            firestore.collection("users").document(uid).set(location).await()
+            firestore.collection("users").document(uid).get().await().getString("name") ?: "Unknown User"
+        } catch (e: Exception) {
+            "Unknown User"
+        }
+    }
+
+    override suspend fun saveUserLocation(location: UserLocation): Resource<Unit> {
+        val uid = firebaseAuth.currentUser?.uid ?: return Resource.Error("User not logged in.")
+        return try {
+            val name = getUserName(uid)
+            val locationToSave = location.copy(userId = uid, userName = name)
+            firestore.collection("selected_locations").document(uid).set(locationToSave).await()
             Resource.Success(Unit)
         } catch (e: Exception) {
             Resource.Error(e.message ?: "Failed to save location.")
         }
     }
 
-    override suspend fun getUserLocation(): Resource<UserLocation?> {
+    override fun getUserLocation(): Flow<Resource<UserLocation?>> {
         val uid = firebaseAuth.currentUser?.uid
-            ?: return Resource.Error("User not logged in.")
-
-        return try {
-            val document = firestore.collection("users").document(uid).get().await()
-            val location = document.toObject(UserLocation::class.java)
-            Resource.Success(location)
-        } catch (e: Exception) {
-            Resource.Error(e.message ?: "Failed to retrieve location.")
+        if (uid == null) {
+            return kotlinx.coroutines.flow.flowOf(Resource.Error("User not logged in."))
         }
+
+        return firestore.collection("selected_locations").document(uid)
+            .snapshots()
+            .map { documentSnapshot ->
+                try {
+                    val location = documentSnapshot.toObject(UserLocation::class.java)
+                    Resource.Success(location)
+                } catch (e: Exception) {
+                    Resource.Error(e.message ?: "Failed to parse location.")
+                }
+            }
     }
 
     override suspend fun getAllUsersLocations(): Resource<List<UserLocation>> {
+        return Resource.Success(emptyList())
+    }
+
+    override suspend fun saveRealtimeUserLocation(location: UserLocation): Resource<Unit> {
+        val uid = firebaseAuth.currentUser?.uid ?: return Resource.Error("User not logged in.")
         return try {
-            val currentUserId = firebaseAuth.currentUser?.uid
-            val documents = firestore.collection("users").get().await()
-            val locations = documents.documents.mapNotNull { document ->
-                if (document.id != currentUserId) {
-                    document.toObject(UserLocation::class.java)
-                } else {
-                    null
-                }
-            }
-            Resource.Success(locations)
+            val name = getUserName(uid)
+            val locationToSave = location.copy(userId = uid, userName = name)
+            firestore.collection("realtime_locations").document(uid).set(locationToSave).await()
+            Resource.Success(Unit)
         } catch (e: Exception) {
-            Resource.Error(e.message ?: "Failed to retrieve all user locations.")
+            Resource.Error(e.message ?: "Failed to save real-time location.")
+        }
+    }
+
+    override fun getRealtimeAllUsersLocations(): Flow<Resource<List<UserLocation>>> {
+        return firestore.collection("realtime_locations").snapshots().map { querySnapshot ->
+            try {
+                val locations = querySnapshot.documents.mapNotNull { it.toObject<UserLocation>() }
+                Resource.Success(locations)
+            } catch (e: Exception) {
+                Resource.Error(e.message ?: "Failed to parse real-time locations.")
+            }
         }
     }
 }

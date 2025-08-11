@@ -20,10 +20,10 @@ class AuthViewModel : ViewModel() {
     private val _loginState = MutableLiveData<Resource<AuthResult>>()
     val loginState: LiveData<Resource<AuthResult>> = _loginState
 
-    fun register(email: String, pass: String) {
+    fun register(email: String, pass: String, name: String) {
         viewModelScope.launch {
             _registrationState.value = Resource.Loading()
-            val result = repository.registerUser(email, pass)
+            val result = repository.registerUser(email, pass, name)
             _registrationState.value = result
         }
     }

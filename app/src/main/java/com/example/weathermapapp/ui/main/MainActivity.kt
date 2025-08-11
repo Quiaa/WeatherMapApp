@@ -21,7 +21,7 @@ import com.example.weathermapapp.util.Resource
 import com.mapbox.geojson.Point
 import com.mapbox.maps.plugin.gestures.OnMapClickListener
 
-class MainActivity : AppCompatActivity(), OnMapClickListener {
+class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private val mapViewModel: MapViewModel by viewModels()
@@ -46,24 +46,25 @@ class MainActivity : AppCompatActivity(), OnMapClickListener {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Initialize the MapManager to handle all map-related operations.
         mapManager = MapManager(this, binding.mapView)
-        mapManager.initialize(this) {
-            // This lambda block is executed once the map style has been loaded.
-            // Now it's safe to load location data.
-            mapViewModel.loadUserLocation()
-            mapViewModel.fetchAllUsersLocations()
+        val mapClickListener = OnMapClickListener { point ->
+            onMapClick(point)
+            true
+        }
+        mapManager.initialize(mapClickListener) {
+            mapViewModel.observeUserLocation()
+            mapViewModel.observeRealtimeUsersLocations()
         }
 
         setupClickListeners()
         observeViewModels()
+        checkAndRequestLocationPermission()
     }
-    override fun onMapClick(point: Point): Boolean {
-        mapManager.placeUserMarker(point) // Visually update the marker on the map.
+
+    private fun onMapClick(point: Point) {
         val location = UserLocation(latitude = point.latitude(), longitude = point.longitude())
-        mapViewModel.saveLocation(location) // Save the new location via ViewModel.
-        mapViewModel.fetchWeatherData(point.latitude(), point.longitude()) // Fetch weather for the new location.
-        return true
+        mapViewModel.saveLocation(location)
+        mapViewModel.fetchWeatherData(point.latitude(), point.longitude())
     }
 
     private fun setupClickListeners() {
@@ -86,24 +87,24 @@ class MainActivity : AppCompatActivity(), OnMapClickListener {
             when (resource) {
                 is Resource.Success -> {
                     resource.data?.let { location ->
-                        val userPoint = Point.fromLngLat(location.longitude, location.latitude)
-                        mapManager.placeUserMarker(userPoint)
-                        mapManager.moveCamera(userPoint)
+                        mapManager.updateSelectedLocationMarker(location)
                         mapViewModel.fetchWeatherData(location.latitude, location.longitude)
-                    } ?: run {
-                        // If no location is saved, move camera to a default location.
-                        val defaultPoint = Point.fromLngLat(28.9784, 41.0082) // Istanbul
-                        mapManager.moveCamera(defaultPoint, 9.0)
                     }
                 }
                 is Resource.Error -> {
                     Toast.makeText(this, resource.message, Toast.LENGTH_LONG).show()
-                    val defaultPoint = Point.fromLngLat(28.9784, 41.0082)
-                    mapManager.moveCamera(defaultPoint, 9.0)
                 }
-                is Resource.Loading -> { /* Optionally handle loading state */
+                is Resource.Loading -> {
                 }
             }
+        }
+
+        mapViewModel.myRealtimeLocation.observe(this) { location ->
+            location?.let { mapManager.updateMyRealtimeLocationMarker(it) }
+        }
+
+        mapViewModel.otherUsersRealtimeLocations.observe(this) { locations ->
+            locations?.let { mapManager.updateOtherUsersRealtimeMarkers(it) }
         }
 
         // Observer for weather data updates.
@@ -121,19 +122,6 @@ class MainActivity : AppCompatActivity(), OnMapClickListener {
                     binding.weatherProgressBar.visibility = View.GONE
                     Toast.makeText(this, "Weather Error: ${resource.message}", Toast.LENGTH_LONG).show()
                 }
-            }
-        }
-
-        // Observer for all other users' locations.
-        mapViewModel.allUsersLocations.observe(this) { resource ->
-            if (resource is Resource.Success) {
-                resource.data?.let { locations ->
-                    val points = locations.map { Point.fromLngLat(it.longitude, it.latitude) }
-                    mapManager.placeOtherUsersMarkers(points)
-                }
-            } else if (resource is Resource.Error) {
-                Toast.makeText(this, "Error fetching other users: ${resource.message}", Toast.LENGTH_LONG)
-                    .show()
             }
         }
 
@@ -175,6 +163,9 @@ class MainActivity : AppCompatActivity(), OnMapClickListener {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
         ) {
+            // Permission is granted, start real-time updates.
+            mapViewModel.startRealtimeLocationUpdates()
+            // We can also fetch the current location for the button click functionality
             mapViewModel.fetchCurrentDeviceLocation()
         } else {
             locationPermissionRequest.launch(
@@ -202,5 +193,7 @@ class MainActivity : AppCompatActivity(), OnMapClickListener {
     override fun onDestroy() {
         super.onDestroy()
         binding.mapView.onDestroy()
+        // Stop location updates to prevent memory leaks and battery drain
+        mapViewModel.stopRealtimeLocationUpdates()
     }
 }
