@@ -10,6 +10,7 @@ interface AuthRepository {
     suspend fun registerUser(email: String, pass: String): Resource<AuthResult>
     // Add the login function to the interface
     suspend fun loginUser(email: String, pass: String): Resource<AuthResult>
+    fun logoutUser() // Add logout function
 }
 
 // The implementation handles the actual logic with Firebase.
@@ -38,5 +39,9 @@ class AuthRepositoryImpl(
             // If an exception occurs, return an Error resource with the exception message.
             Resource.Error(e.message ?: "An unknown error occurred.")
         }
+    }
+
+    override fun logoutUser() {
+        firebaseAuth.signOut()
     }
 }

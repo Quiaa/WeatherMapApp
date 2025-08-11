@@ -44,4 +44,8 @@ class AuthViewModel : ViewModel() {
             _loginState.value = result
         }
     }
+
+    fun logout() {
+        repository.logoutUser()
+    }
 }
