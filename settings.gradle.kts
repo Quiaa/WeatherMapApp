@@ -1,3 +1,18 @@
+import java.io.File
+import java.util.Properties
+
+// Create a Properties object to hold properties from local.properties
+val localProperties = Properties()
+// Define the path to the local.properties file using the correct root directory reference
+val localPropertiesFile = File(rootDir, "local.properties")
+
+// Check if the file exists and load it
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use { input ->
+        localProperties.load(input)
+    }
+}
+
 pluginManagement {
     repositories {
         google {
@@ -25,7 +40,8 @@ dependencyResolutionManagement {
             credentials {
                 // Use public token for downloads
                 username = "mapbox"
-                password = providers.gradleProperty("MAPBOX_DOWNLOADS_TOKEN").get()
+                // Directly get the property from the object we loaded above
+                password = localProperties.getProperty("MAPBOX_DOWNLOADS_TOKEN")
             }
         }
     }
