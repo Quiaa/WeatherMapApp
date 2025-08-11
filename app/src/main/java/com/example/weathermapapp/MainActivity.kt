@@ -7,7 +7,6 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.os.Bundle
-import android.os.Looper
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -19,7 +18,6 @@ import com.bumptech.glide.Glide
 import com.example.weathermapapp.data.model.UserLocation
 import com.example.weathermapapp.data.model.WeatherResponse
 import com.example.weathermapapp.databinding.ActivityMainBinding
-import com.example.weathermapapp.ui.auth.AuthViewModel
 import com.example.weathermapapp.ui.auth.LoginActivity
 import com.example.weathermapapp.util.Resource
 import com.google.android.gms.location.*
@@ -39,9 +37,6 @@ class MainActivity : AppCompatActivity(), OnMapClickListener {
 
     private lateinit var binding: ActivityMainBinding
     private val mapViewModel: MapViewModel by viewModels()
-
-    private var pointAnnotationManager: PointAnnotationManager? = null
-    private var pointAnnotation: PointAnnotation? = null
     private var otherUsersAnnotationManager: PointAnnotationManager? = null // For other users
     private var userPointAnnotationManager: PointAnnotationManager? = null // For the current user
     private var userPointAnnotation: PointAnnotation? = null // For the current user
