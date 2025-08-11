@@ -4,7 +4,6 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.weathermapapp.data.model.UserLocation
 import com.example.weathermapapp.data.model.WeatherResponse
@@ -18,7 +17,6 @@ import com.example.weathermapapp.util.Resource
 import kotlinx.coroutines.launch
 import com.example.weathermapapp.util.LocationProvider
 import com.mapbox.geojson.Point
-import kotlinx.coroutines.launch
 
 class MapViewModel(application: Application) : AndroidViewModel(application) {
 

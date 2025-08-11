@@ -15,7 +15,7 @@ import com.mapbox.maps.plugin.annotation.generated.PointAnnotationManager
 import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
 import com.mapbox.maps.plugin.annotation.generated.createPointAnnotationManager
 import com.mapbox.maps.plugin.gestures.OnMapClickListener
-import com.mapbox.maps.plugin.gestures.gestures // Gerekli import eklendi
+import com.mapbox.maps.plugin.gestures.gestures
 
 class MapManager(private val context: Context, private val mapView: MapView) {
 
