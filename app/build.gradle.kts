@@ -80,6 +80,8 @@ dependencies {
 
     implementation(libs.glide)
 
+    implementation(libs.play.services.location)
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
