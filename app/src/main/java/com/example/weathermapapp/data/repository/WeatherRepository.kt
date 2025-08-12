@@ -2,8 +2,9 @@ package com.example.weathermapapp.data.repository
 
 import com.example.weathermapapp.BuildConfig
 import com.example.weathermapapp.data.model.WeatherResponse
-import com.example.weathermapapp.network.service.RetrofitInstance
+import com.example.weathermapapp.network.api.WeatherApiService
 import com.example.weathermapapp.util.Resource
+import javax.inject.Inject
 
 // Interface for WeatherRepository
 interface WeatherRepository {
@@ -11,27 +12,25 @@ interface WeatherRepository {
 }
 
 // Implementation of WeatherRepository
-class WeatherRepositoryImpl : WeatherRepository {
-
+class WeatherRepositoryImpl @Inject constructor(
+    private val weatherApiService: WeatherApiService
+) : WeatherRepository {
     override suspend fun getWeatherData(lat: Double, lon: Double): Resource<WeatherResponse> {
         return try {
-            // Call the API through our RetrofitInstance
-            val response = RetrofitInstance.api.getCurrentWeather(
+            val response = weatherApiService.getCurrentWeather(
                 latitude = lat,
                 longitude = lon,
-                apiKey = BuildConfig.OPENWEATHER_API_KEY // Use the key from BuildConfig
+                apiKey = BuildConfig.OPENWEATHER_API_KEY
             )
+            // ... geri kalan kod aynı
             if (response.isSuccessful) {
-                // If the response is successful, return the data
                 response.body()?.let {
                     Resource.Success(it)
                 } ?: Resource.Error("Response body is empty.")
             } else {
-                // If the server returned an error (e.g., 404, 500)
                 Resource.Error("API Error: ${response.code()} - ${response.message()}")
             }
         } catch (e: Exception) {
-            // If there's a network error or other exception
             Resource.Error(e.message ?: "An unknown network error occurred.")
         }
     }

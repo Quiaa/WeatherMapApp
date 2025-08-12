@@ -5,14 +5,16 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.weathermapapp.data.repository.AuthRepository
-import com.example.weathermapapp.data.repository.AuthRepositoryImpl
 import com.example.weathermapapp.util.Resource
 import com.google.firebase.auth.AuthResult
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class AuthViewModel : ViewModel() {
-
-    private val repository: AuthRepository = AuthRepositoryImpl()
+@HiltViewModel
+class AuthViewModel @Inject constructor(
+    private val repository: AuthRepository
+) : ViewModel() {
 
     private val _registrationState = MutableLiveData<Resource<AuthResult>>()
     val registrationState: LiveData<Resource<AuthResult>> = _registrationState

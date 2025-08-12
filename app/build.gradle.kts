@@ -11,6 +11,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.hilt)
+    kotlin("kapt")
 }
 
 android {
@@ -49,6 +51,9 @@ android {
         viewBinding = true
         buildConfig = true
     }
+    kapt {
+        correctErrorTypes = true
+    }
 }
 
 dependencies {
@@ -81,6 +86,10 @@ dependencies {
     implementation(libs.glide)
 
     implementation(libs.play.services.location)
+
+    // Hilt
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
 
     // Testing
     testImplementation(libs.junit)

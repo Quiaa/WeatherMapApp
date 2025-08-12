@@ -1,32 +1,30 @@
 package com.example.weathermapapp.ui.map
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.weathermapapp.data.model.UserLocation
 import com.example.weathermapapp.data.model.WeatherResponse
 import com.example.weathermapapp.data.repository.AuthRepository
-import com.example.weathermapapp.data.repository.AuthRepositoryImpl
 import com.example.weathermapapp.data.repository.UserRepository
-import com.example.weathermapapp.data.repository.UserRepositoryImpl
 import com.example.weathermapapp.data.repository.WeatherRepository
-import com.example.weathermapapp.data.repository.WeatherRepositoryImpl
 import com.example.weathermapapp.util.Resource
 import kotlinx.coroutines.launch
 import com.example.weathermapapp.util.LocationProvider
 import com.mapbox.geojson.Point
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import javax.inject.Inject
 
-class MapViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val authRepository: AuthRepository = AuthRepositoryImpl()
-    private val userRepository: UserRepository = UserRepositoryImpl()
-    private val weatherRepository: WeatherRepository = WeatherRepositoryImpl()
-
-    private val locationProvider: LocationProvider = LocationProvider(application)
+@HiltViewModel
+class MapViewModel @Inject constructor(
+    private val authRepository: AuthRepository,
+    private val userRepository: UserRepository,
+    private val weatherRepository: WeatherRepository,
+    private val locationProvider: LocationProvider
+) : ViewModel() {
 
     // LiveData for the current device location event
     private val _currentDeviceLocation = MutableLiveData<Resource<Point>>()

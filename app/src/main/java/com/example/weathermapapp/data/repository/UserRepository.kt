@@ -9,6 +9,7 @@ import kotlinx.coroutines.tasks.await
 import com.google.firebase.firestore.ktx.snapshots
 import com.google.firebase.firestore.ktx.toObject
 import kotlinx.coroutines.flow.map
+import javax.inject.Inject
 
 // Interface for UserRepository
 interface UserRepository {
@@ -20,9 +21,9 @@ interface UserRepository {
 }
 
 // Implementation of UserRepository
-class UserRepositoryImpl(
-    private val firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance(),
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
+class UserRepositoryImpl @Inject constructor(
+    private val firebaseAuth: FirebaseAuth,
+    private val firestore: FirebaseFirestore
 ) : UserRepository {
 
     private suspend fun getUserName(uid: String): String {

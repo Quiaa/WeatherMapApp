@@ -10,7 +10,9 @@ import com.example.weathermapapp.ui.main.MainActivity
 import com.example.weathermapapp.databinding.ActivityLoginBinding
 import com.example.weathermapapp.util.Resource
 import com.google.firebase.auth.FirebaseAuth
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLoginBinding

@@ -9,7 +9,9 @@ import androidx.appcompat.app.AppCompatActivity
 import com.example.weathermapapp.ui.main.MainActivity
 import com.example.weathermapapp.databinding.ActivityRegisterBinding
 import com.example.weathermapapp.util.Resource
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class RegisterActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityRegisterBinding

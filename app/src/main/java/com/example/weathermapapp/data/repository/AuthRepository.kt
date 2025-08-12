@@ -5,6 +5,7 @@ import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
 
 interface AuthRepository {
     fun logoutUser()
@@ -13,9 +14,9 @@ interface AuthRepository {
     suspend fun loginUser(email: String, pass: String): Resource<AuthResult>
 }
 
-class AuthRepositoryImpl(
-    private val firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance(),
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
+class AuthRepositoryImpl @Inject constructor(
+    private val firebaseAuth: FirebaseAuth,
+    private val firestore: FirebaseFirestore
 ) : AuthRepository {
 
     override suspend fun registerUser(email: String, pass: String, name: String): Resource<AuthResult> {

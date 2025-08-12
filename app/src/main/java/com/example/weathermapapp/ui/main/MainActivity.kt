@@ -20,7 +20,9 @@ import com.example.weathermapapp.ui.map.MapViewModel
 import com.example.weathermapapp.util.Resource
 import com.mapbox.geojson.Point
 import com.mapbox.maps.plugin.gestures.OnMapClickListener
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
