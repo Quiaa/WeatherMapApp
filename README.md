@@ -25,6 +25,7 @@ WeatherMap is a modern Android application that provides real-time weather infor
 - **Android Architecture Components**:
   - **ViewModel**: To manage UI-related data in a lifecycle-conscious way.
   - **LiveData**: To build data objects that notify views when the underlying data changes.
+  - **Hilt**: For dependency injection to manage dependencies and simplify the architecture.
 - **Coroutines**: For managing background threads and asynchronous operations.
 
 ## 🚀 Getting Started
