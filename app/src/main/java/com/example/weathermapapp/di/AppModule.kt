@@ -1,6 +1,9 @@
 package com.example.weathermapapp.di
 
 import android.content.Context
+import androidx.room.Room
+import com.example.weathermapapp.data.db.WeatherDao
+import com.example.weathermapapp.data.db.WeatherDatabase
 import com.example.weathermapapp.network.api.WeatherApiService
 import com.example.weathermapapp.util.LocationProvider
 import com.google.firebase.auth.FirebaseAuth
@@ -42,4 +45,20 @@ object AppModule {
     @Singleton
     fun provideLocationProvider(@ApplicationContext context: Context): LocationProvider =
         LocationProvider(context)
+
+    @Provides
+    @Singleton
+    fun provideWeatherDatabase(@ApplicationContext context: Context): WeatherDatabase {
+        return Room.databaseBuilder(
+            context,
+            WeatherDatabase::class.java,
+            "weather_database"
+        ).build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideWeatherDao(database: WeatherDatabase): WeatherDao {
+        return database.weatherDao()
+    }
 }

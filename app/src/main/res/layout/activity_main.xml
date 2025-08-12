@@ -18,7 +18,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="end|bottom"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="170dp"
+        android:layout_marginBottom="195dp"
         android:src="@android:drawable/ic_menu_mylocation"
         app:backgroundTint="@color/white"
         app:tint="?attr/colorPrimary"
@@ -42,6 +42,35 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="16dp">
+
+            <LinearLayout
+                android:id="@+id/cacheStatusContainer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:visibility="gone"
+                tools:visibility="visible"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tvTemperature">
+
+                <TextView
+                    android:id="@+id/tvCacheStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="12sp"
+                    android:textStyle="italic"
+                    tools:text="Cached data" />
+
+                <ImageButton
+                    android:id="@+id/btnRefresh"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_refresh"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:layout_marginStart="8dp"
+                    android:contentDescription="Refresh Data"/>
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/tvLocationName"

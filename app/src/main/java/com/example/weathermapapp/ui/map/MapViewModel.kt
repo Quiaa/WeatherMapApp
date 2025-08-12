@@ -17,6 +17,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
+import com.example.weathermapapp.data.model.WeatherDataWrapper
+import androidx.lifecycle.MediatorLiveData
 
 @HiltViewModel
 class MapViewModel @Inject constructor(
@@ -34,8 +36,9 @@ class MapViewModel @Inject constructor(
     val userLocation: LiveData<Resource<UserLocation?>> = _userLocation
 
     // LiveData for weather data
-    private val _weatherData = MutableLiveData<Resource<WeatherResponse>>()
-    val weatherData: LiveData<Resource<WeatherResponse>> = _weatherData
+    private val _weatherData = MutableLiveData<Resource<WeatherDataWrapper>>()
+    val weatherData: LiveData<Resource<WeatherDataWrapper>> = _weatherData
+    private var lastFetchedPoint: Point? = null
 
     // LiveData for all other users' locations
     private val _allUsersLocations = MutableLiveData<Resource<List<UserLocation>>>()
@@ -52,6 +55,11 @@ class MapViewModel @Inject constructor(
     private var lastLocationUpdateTime = 0L
     private val locationUpdateThreshold = 5000L // 5 seconds
 
+    val isWeatherFromCache = MediatorLiveData<Boolean>().apply {
+        addSource(_weatherData) { resource ->
+            value = (resource is Resource.Success && resource.data?.isFromCache == true)
+        }
+    }
     fun fetchCurrentDeviceLocation() {
         _currentDeviceLocation.value = Resource.Loading()
         locationProvider.getCurrentLocation(
@@ -62,6 +70,25 @@ class MapViewModel @Inject constructor(
                 _currentDeviceLocation.value = Resource.Error(errorMessage)
             }
         )
+    }
+
+    fun fetchWeatherData(lat: Double, lon: Double) {
+        lastFetchedPoint = Point.fromLngLat(lon, lat) // Konumu kaydet
+        viewModelScope.launch {
+            _weatherData.value = Resource.Loading()
+            val result = weatherRepository.getWeatherData(lat, lon)
+            _weatherData.value = result
+        }
+    }
+
+    fun forceRefreshWeatherData() {
+        lastFetchedPoint?.let { point ->
+            viewModelScope.launch {
+                _weatherData.value = Resource.Loading()
+                val result = weatherRepository.getWeatherData(point.latitude(), point.longitude(), forceNetwork = true)
+                _weatherData.value = result
+            }
+        }
     }
 
     fun logout() {
@@ -81,14 +108,6 @@ class MapViewModel @Inject constructor(
                 _userLocation.value = result
             }
             .launchIn(viewModelScope)
-    }
-
-    fun fetchWeatherData(lat: Double, lon: Double) {
-        viewModelScope.launch {
-            _weatherData.value = Resource.Loading()
-            val result = weatherRepository.getWeatherData(lat, lon)
-            _weatherData.value = result
-        }
     }
 
     fun fetchAllUsersLocations() {

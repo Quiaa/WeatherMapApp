@@ -81,6 +81,10 @@ class MainActivity : AppCompatActivity() {
         binding.btnCurrentLocation.setOnClickListener {
             checkAndRequestLocationPermission()
         }
+
+        binding.btnRefresh.setOnClickListener {
+            mapViewModel.forceRefreshWeatherData()
+        }
     }
 
     private fun observeViewModels() {
@@ -115,15 +119,22 @@ class MainActivity : AppCompatActivity() {
                 is Resource.Loading -> {
                     binding.weatherCard.visibility = View.VISIBLE
                     binding.weatherProgressBar.visibility = View.VISIBLE
+                    binding.cacheStatusContainer.visibility = View.GONE
                 }
                 is Resource.Success -> {
                     binding.weatherProgressBar.visibility = View.GONE
-                    resource.data?.let { updateWeatherUI(it) }
+                    resource.data?.let { updateWeatherUI(it.weatherResponse) }
                 }
                 is Resource.Error -> {
                     binding.weatherProgressBar.visibility = View.GONE
                     Toast.makeText(this, "Weather Error: ${resource.message}", Toast.LENGTH_LONG).show()
                 }
+            }
+        }
+        mapViewModel.isWeatherFromCache.observe(this) { isFromCache ->
+            binding.cacheStatusContainer.visibility = if (isFromCache) View.VISIBLE else View.GONE
+            if (isFromCache) {
+                binding.tvCacheStatus.text = "Showing cached data"
             }
         }
 
