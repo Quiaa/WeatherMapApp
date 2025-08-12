@@ -25,6 +25,7 @@ class MapManager(private val context: Context, private val mapView: MapView) {
 
     private var selectedLocationAnnotation: PointAnnotation? = null
     private var myRealtimeLocationAnnotation: PointAnnotation? = null
+    private var otherUsersAnnotations = mutableMapOf<String, PointAnnotation>()
 
     fun initialize(onMapClick: OnMapClickListener, onStyleLoaded: () -> Unit) {
         val annotationApi = mapView.annotations
@@ -79,16 +80,44 @@ class MapManager(private val context: Context, private val mapView: MapView) {
 
 
     fun updateOtherUsersRealtimeMarkers(locations: List<UserLocation>) {
-        otherRealtimeLocationsAnnManager?.deleteAll()
-        val optionsList = locations.map { location ->
-            val data = JsonObject().apply { addProperty("name", location.userName) }
-            PointAnnotationOptions()
-                .withPoint(Point.fromLngLat(location.longitude, location.latitude))
-                .withIconImage("blue-marker")
-                .withIconSize(1.5)
-                .withData(data)
+        val newLocationsMap = locations.associateBy { it.userId }
+        val currentAnnotationIds = otherUsersAnnotations.keys.toMutableSet()
+
+        // Update existing and add new markers
+        for (location in locations) {
+            val userId = location.userId
+            if (userId.isEmpty()) continue
+
+            val point = Point.fromLngLat(location.longitude, location.latitude)
+
+            if (otherUsersAnnotations.containsKey(userId)) {
+                // Update existing marker
+                val annotation = otherUsersAnnotations[userId]
+                annotation?.point = point
+                otherRealtimeLocationsAnnManager?.update(annotation!!)
+                currentAnnotationIds.remove(userId)
+            } else {
+                // Add new marker
+                val data = JsonObject().apply { addProperty("name", location.userName) }
+                val options = PointAnnotationOptions()
+                    .withPoint(point)
+                    .withIconImage("blue-marker")
+                    .withIconSize(1.5)
+                    .withData(data)
+                val annotation = otherRealtimeLocationsAnnManager?.create(options)
+                if (annotation != null) {
+                    otherUsersAnnotations[userId] = annotation
+                }
+            }
         }
-        otherRealtimeLocationsAnnManager?.create(optionsList)
+
+        // Remove old markers
+        for (userId in currentAnnotationIds) {
+            otherUsersAnnotations[userId]?.let {
+                otherRealtimeLocationsAnnManager?.delete(it)
+            }
+            otherUsersAnnotations.remove(userId)
+        }
     }
 
     private fun addAnnotationClickListener() {

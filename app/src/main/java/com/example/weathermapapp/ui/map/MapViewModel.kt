@@ -51,6 +51,9 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
     private val _otherUsersRealtimeLocations = MutableLiveData<List<UserLocation>>()
     val otherUsersRealtimeLocations: LiveData<List<UserLocation>> = _otherUsersRealtimeLocations
 
+    private var lastLocationUpdateTime = 0L
+    private val locationUpdateThreshold = 5000L // 5 seconds
+
     fun fetchCurrentDeviceLocation() {
         _currentDeviceLocation.value = Resource.Loading()
         locationProvider.getCurrentLocation(
@@ -103,9 +106,13 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun startRealtimeLocationUpdates() {
         locationProvider.startLocationUpdates { point ->
-            viewModelScope.launch {
-                val userLocation = UserLocation(point.latitude(), point.longitude())
-                userRepository.saveRealtimeUserLocation(userLocation)
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - lastLocationUpdateTime > locationUpdateThreshold) {
+                lastLocationUpdateTime = currentTime
+                viewModelScope.launch {
+                    val userLocation = UserLocation(point.latitude(), point.longitude())
+                    userRepository.saveRealtimeUserLocation(userLocation)
+                }
             }
         }
     }
