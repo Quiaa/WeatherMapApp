@@ -72,11 +72,11 @@ class MapViewModel @Inject constructor(
         )
     }
 
-    fun fetchWeatherData(lat: Double, lon: Double) {
-        lastFetchedPoint = Point.fromLngLat(lon, lat) // Konumu kaydet
+    fun fetchWeatherData(lat: Double, lon: Double, forceNetwork: Boolean = false) {
+        lastFetchedPoint = Point.fromLngLat(lon, lat)
         viewModelScope.launch {
             _weatherData.value = Resource.Loading()
-            val result = weatherRepository.getWeatherData(lat, lon)
+            val result = weatherRepository.getWeatherData(lat, lon, forceNetwork)
             _weatherData.value = result
         }
     }

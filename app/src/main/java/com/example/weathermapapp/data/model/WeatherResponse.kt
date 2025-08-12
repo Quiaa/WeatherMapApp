@@ -18,3 +18,8 @@ data class Main(
     @SerializedName("feels_like") val feelsLike: Double,
     @SerializedName("humidity") val humidity: Int
 )
+
+data class CachedWeatherResponse(
+    val weatherResponse: WeatherResponse,
+    val timestamp: Long
+)

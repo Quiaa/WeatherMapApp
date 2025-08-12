@@ -12,12 +12,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.bumptech.glide.Glide
 import com.example.weathermapapp.data.model.UserLocation
-import com.example.weathermapapp.data.model.WeatherResponse
+import com.example.weathermapapp.data.model.WeatherDataWrapper
 import com.example.weathermapapp.databinding.ActivityMainBinding
 import com.example.weathermapapp.ui.auth.LoginActivity
 import com.example.weathermapapp.ui.map.MapManager
 import com.example.weathermapapp.ui.map.MapViewModel
 import com.example.weathermapapp.util.Resource
+import com.example.weathermapapp.util.TimeUtils
 import com.mapbox.geojson.Point
 import com.mapbox.maps.plugin.gestures.OnMapClickListener
 import dagger.hilt.android.AndroidEntryPoint
@@ -35,10 +36,8 @@ class MainActivity : AppCompatActivity() {
         if (permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false) ||
             permissions.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false)
         ) {
-            // Permission granted, delegate the action to the ViewModel.
             mapViewModel.fetchCurrentDeviceLocation()
         } else {
-            // Permission denied, show a toast.
             Toast.makeText(this, "Location permission denied", Toast.LENGTH_SHORT).show()
         }
     }
@@ -113,7 +112,6 @@ class MainActivity : AppCompatActivity() {
             locations?.let { mapManager.updateOtherUsersRealtimeMarkers(it) }
         }
 
-        // Observer for weather data updates.
         mapViewModel.weatherData.observe(this) { resource ->
             when (resource) {
                 is Resource.Loading -> {
@@ -123,18 +121,14 @@ class MainActivity : AppCompatActivity() {
                 }
                 is Resource.Success -> {
                     binding.weatherProgressBar.visibility = View.GONE
-                    resource.data?.let { updateWeatherUI(it.weatherResponse) }
+                    resource.data?.let { wrapper ->
+                        updateWeatherUI(wrapper)
+                    }
                 }
                 is Resource.Error -> {
                     binding.weatherProgressBar.visibility = View.GONE
                     Toast.makeText(this, "Weather Error: ${resource.message}", Toast.LENGTH_LONG).show()
                 }
-            }
-        }
-        mapViewModel.isWeatherFromCache.observe(this) { isFromCache ->
-            binding.cacheStatusContainer.visibility = if (isFromCache) View.VISIBLE else View.GONE
-            if (isFromCache) {
-                binding.tvCacheStatus.text = "Showing cached data"
             }
         }
 
@@ -144,7 +138,6 @@ class MainActivity : AppCompatActivity() {
                 is Resource.Success -> {
                     resource.data?.let { point ->
                         mapManager.moveCamera(point)
-                        // Trigger a map click to also update weather, marker, and saved location.
                         onMapClick(point)
                     }
                 }
@@ -157,11 +150,19 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateWeatherUI(data: WeatherResponse) {
+    private fun updateWeatherUI(wrapper: WeatherDataWrapper) {
+        val data = wrapper.weatherResponse
         binding.tvLocationName.text = data.name
         binding.tvWeatherDescription.text =
             data.weather.firstOrNull()?.description?.replaceFirstChar { it.uppercase() } ?: "N/A"
         binding.tvTemperature.text = "${data.main.temp.toInt()}°C"
+
+        binding.cacheStatusContainer.visibility = View.VISIBLE
+        if (wrapper.isFromCache && wrapper.cacheTimestamp != null) {
+            binding.tvCacheStatus.text = "(Cached) ${TimeUtils.getTimeAgo(wrapper.cacheTimestamp)}"
+        } else {
+            binding.tvCacheStatus.text = "Updated just now"
+        }
 
         val iconCode = data.weather.firstOrNull()?.icon
         val iconUrl = "https://openweathermap.org/img/wn/$iconCode@2x.png"
@@ -170,15 +171,11 @@ class MainActivity : AppCompatActivity() {
             .into(binding.ivWeatherIcon)
     }
 
-
-
     private fun checkAndRequestLocationPermission() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
         ) {
-            // Permission is granted, start real-time updates.
             mapViewModel.startRealtimeLocationUpdates()
-            // We can also fetch the current location for the button click functionality
             mapViewModel.fetchCurrentDeviceLocation()
         } else {
             locationPermissionRequest.launch(
@@ -206,7 +203,6 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         binding.mapView.onDestroy()
-        // Stop location updates to prevent memory leaks and battery drain
         mapViewModel.stopRealtimeLocationUpdates()
     }
 }

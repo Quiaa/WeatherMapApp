@@ -3,9 +3,9 @@ package com.example.weathermapapp.data.repository
 import com.example.weathermapapp.BuildConfig
 import com.example.weathermapapp.data.db.WeatherDao
 import com.example.weathermapapp.data.model.WeatherCacheEntity
+import com.example.weathermapapp.data.model.WeatherDataWrapper
 import com.example.weathermapapp.data.model.WeatherResponse
 import com.example.weathermapapp.network.api.WeatherApiService
-import com.example.weathermapapp.data.model.WeatherDataWrapper
 import com.example.weathermapapp.util.Resource
 import javax.inject.Inject
 
@@ -18,7 +18,7 @@ class WeatherRepositoryImpl @Inject constructor(
     private val weatherDao: WeatherDao
 ) : WeatherRepository {
 
-    private val CACHE_TIMEOUT = 10 * 60 * 1000 // 10 minutes in milliseconds
+    private val CACHE_TIMEOUT = 5 * 60 * 1000 // 5 minutes in milliseconds
 
     override suspend fun getWeatherData(lat: Double, lon: Double, forceNetwork: Boolean): Resource<WeatherDataWrapper> {
         val locationKey = "$lat,$lon"

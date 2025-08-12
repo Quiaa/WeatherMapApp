@@ -43,34 +43,13 @@
             android:layout_height="wrap_content"
             android:padding="16dp">
 
-            <LinearLayout
-                android:id="@+id/cacheStatusContainer"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:visibility="gone"
-                tools:visibility="visible"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tvTemperature">
-
-                <TextView
-                    android:id="@+id/tvCacheStatus"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textSize="12sp"
-                    android:textStyle="italic"
-                    tools:text="Cached data" />
-
-                <ImageButton
-                    android:id="@+id/btnRefresh"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_refresh"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:layout_marginStart="8dp"
-                    android:contentDescription="Refresh Data"/>
-            </LinearLayout>
+            <ImageView
+                android:id="@+id/ivWeatherIcon"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:src="@android:drawable/ic_dialog_info" />
 
             <TextView
                 android:id="@+id/tvLocationName"
@@ -96,27 +75,46 @@
                 app:layout_constraintTop_toBottomOf="@id/tvLocationName"
                 tools:text="Clear Sky" />
 
+            <LinearLayout
+                android:id="@+id/cacheStatusContainer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="8dp"
+                android:visibility="gone"
+                tools:visibility="visible"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tvWeatherDescription">
+
+                <TextView
+                    android:id="@+id/tvCacheStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="12sp"
+                    android:textStyle="italic"
+                    tools:text="(Cached) updated 5 mins ago" />
+
+                <ImageButton
+                    android:id="@+id/btnRefresh"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_refresh"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:layout_marginStart="8dp"
+                    android:contentDescription="Refresh Data"/>
+            </LinearLayout>
+
             <TextView
                 android:id="@+id/tvTemperature"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
                 android:textColor="?android:attr/textColorPrimary"
                 android:textSize="36sp"
                 android:textStyle="bold"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tvWeatherDescription"
+                app:layout_constraintTop_toBottomOf="@id/cacheStatusContainer"
                 tools:text="25°C" />
-
-            <ImageView
-                android:id="@+id/ivWeatherIcon"
-                android:layout_width="80dp"
-                android:layout_height="80dp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias="0.0"
-                tools:src="@android:drawable/ic_dialog_info" />
 
             <ImageButton
                 android:id="@+id/btnLogout"
