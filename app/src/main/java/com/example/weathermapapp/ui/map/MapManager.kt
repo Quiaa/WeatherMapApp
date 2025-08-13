@@ -1,6 +1,7 @@
 package com.example.weathermapapp.ui.map
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.widget.Toast
@@ -98,7 +99,11 @@ class MapManager(private val context: Context, private val mapView: MapView) {
                 currentAnnotationIds.remove(userId)
             } else {
                 // Add new marker
-                val data = JsonObject().apply { addProperty("name", location.userName) }
+                val data = JsonObject().apply {
+                    addProperty("name", location.userName)
+                    addProperty("userId", location.userId)
+                    addProperty("type", "user_marker")
+                }
                 val options = PointAnnotationOptions()
                     .withPoint(point)
                     .withIconImage("blue-marker")
@@ -122,9 +127,22 @@ class MapManager(private val context: Context, private val mapView: MapView) {
 
     private fun addAnnotationClickListener() {
         val listener = OnPointAnnotationClickListener { annotation ->
-            annotation.getData()?.let {
-                val name = it.asJsonObject.get("name").asString
-                Toast.makeText(context, name, Toast.LENGTH_LONG).show()
+            annotation.getData()?.let { data ->
+                val json = data.asJsonObject
+                // Check if the marker is a user marker and has a userId
+                if (json.has("type") && json.get("type").asString == "user_marker" && json.has("userId")) {
+                    val userId = json.get("userId").asString
+                    val userName = json.get("name").asString
+                    val intent = Intent(context, com.example.weathermapapp.ui.chat.ChatActivity::class.java).apply {
+                        putExtra("USER_ID", userId)
+                        putExtra("USER_NAME", userName)
+                    }
+                    context.startActivity(intent)
+                } else if (json.has("name")) {
+                    // Fallback for other markers
+                    val name = json.get("name").asString
+                    Toast.makeText(context, name, Toast.LENGTH_LONG).show()
+                }
             }
             true
         }
