@@ -12,10 +12,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.bumptech.glide.Glide
 import com.example.weathermapapp.data.model.UserLocation
-import com.example.weathermapapp.data.model.WeatherDataWrapper
 import com.example.weathermapapp.databinding.ActivityMainBinding
 import com.example.weathermapapp.ui.auth.LoginActivity
 import com.example.weathermapapp.ui.map.MapManager
+import com.example.weathermapapp.ui.main.WeatherUIData
 import com.example.weathermapapp.ui.map.MapViewModel
 import com.example.weathermapapp.util.Resource
 import com.example.weathermapapp.util.TimeUtils
@@ -71,10 +71,6 @@ class MainActivity : AppCompatActivity() {
     private fun setupClickListeners() {
         binding.btnLogout.setOnClickListener {
             mapViewModel.logout()
-            val intent = Intent(this, LoginActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            startActivity(intent)
-            finish()
         }
 
         binding.btnCurrentLocation.setOnClickListener {
@@ -112,24 +108,8 @@ class MainActivity : AppCompatActivity() {
             locations?.let { mapManager.updateOtherUsersRealtimeMarkers(it) }
         }
 
-        mapViewModel.weatherData.observe(this) { resource ->
-            when (resource) {
-                is Resource.Loading -> {
-                    binding.weatherCard.visibility = View.VISIBLE
-                    binding.weatherProgressBar.visibility = View.VISIBLE
-                    binding.cacheStatusContainer.visibility = View.GONE
-                }
-                is Resource.Success -> {
-                    binding.weatherProgressBar.visibility = View.GONE
-                    resource.data?.let { wrapper ->
-                        updateWeatherUI(wrapper)
-                    }
-                }
-                is Resource.Error -> {
-                    binding.weatherProgressBar.visibility = View.GONE
-                    Toast.makeText(this, "Weather Error: ${resource.message}", Toast.LENGTH_LONG).show()
-                }
-            }
+        mapViewModel.weatherUIState.observe(this) { uiState ->
+            updateWeatherUI(uiState)
         }
 
         // Observer for the result of a current device location request.
@@ -148,27 +128,30 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+
+        mapViewModel.logoutComplete.observe(this) {
+            val intent = Intent(this, LoginActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
+            finish()
+        }
     }
 
-    private fun updateWeatherUI(wrapper: WeatherDataWrapper) {
-        val data = wrapper.weatherResponse
-        binding.tvLocationName.text = data.name
-        binding.tvWeatherDescription.text =
-            data.weather.firstOrNull()?.description?.replaceFirstChar { it.uppercase() } ?: "N/A"
-        binding.tvTemperature.text = "${data.main.temp.toInt()}°C"
+    private fun updateWeatherUI(uiState: WeatherUIData) {
+        binding.weatherCard.visibility = uiState.weatherCardVisibility
+        binding.weatherProgressBar.visibility = uiState.progressBarVisibility
+        binding.cacheStatusContainer.visibility = uiState.cacheStatusVisibility
 
-        binding.cacheStatusContainer.visibility = View.VISIBLE
-        if (wrapper.isFromCache && wrapper.cacheTimestamp != null) {
-            binding.tvCacheStatus.text = "(Cached) ${TimeUtils.getTimeAgo(wrapper.cacheTimestamp)}"
-        } else {
-            binding.tvCacheStatus.text = "Updated just now"
+        binding.tvLocationName.text = uiState.locationName
+        binding.tvWeatherDescription.text = uiState.description
+        binding.tvTemperature.text = uiState.temperature
+        binding.tvCacheStatus.text = uiState.cacheStatus
+
+        if (uiState.iconUrl.isNotEmpty()) {
+            Glide.with(this)
+                .load(uiState.iconUrl)
+                .into(binding.ivWeatherIcon)
         }
-
-        val iconCode = data.weather.firstOrNull()?.icon
-        val iconUrl = "https://openweathermap.org/img/wn/$iconCode@2x.png"
-        Glide.with(this)
-            .load(iconUrl)
-            .into(binding.ivWeatherIcon)
     }
 
     private fun checkAndRequestLocationPermission() {

@@ -17,8 +17,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
-import com.example.weathermapapp.data.model.WeatherDataWrapper
+import android.view.View
 import androidx.lifecycle.MediatorLiveData
+import com.example.weathermapapp.data.model.WeatherDataWrapper
+import com.example.weathermapapp.ui.main.WeatherUIData
+import com.example.weathermapapp.util.TimeUtils
 
 @HiltViewModel
 class MapViewModel @Inject constructor(
@@ -40,6 +43,9 @@ class MapViewModel @Inject constructor(
     val weatherData: LiveData<Resource<WeatherDataWrapper>> = _weatherData
     private var lastFetchedPoint: Point? = null
 
+    private val _weatherUIState = MediatorLiveData<WeatherUIData>()
+    val weatherUIState: LiveData<WeatherUIData> = _weatherUIState
+
     // LiveData for all other users' locations
     private val _allUsersLocations = MutableLiveData<Resource<List<UserLocation>>>()
     val allUsersLocations: LiveData<Resource<List<UserLocation>>> = _allUsersLocations
@@ -52,12 +58,52 @@ class MapViewModel @Inject constructor(
     private val _otherUsersRealtimeLocations = MutableLiveData<List<UserLocation>>()
     val otherUsersRealtimeLocations: LiveData<List<UserLocation>> = _otherUsersRealtimeLocations
 
+    private val _logoutComplete = MutableLiveData<Boolean>()
+    val logoutComplete: LiveData<Boolean> = _logoutComplete
+
     private var lastLocationUpdateTime = 0L
     private val locationUpdateThreshold = 5000L // 5 seconds
 
-    val isWeatherFromCache = MediatorLiveData<Boolean>().apply {
-        addSource(_weatherData) { resource ->
-            value = (resource is Resource.Success && resource.data?.isFromCache == true)
+    init {
+        _weatherUIState.addSource(_weatherData) { resource ->
+            when (resource) {
+                is Resource.Loading -> {
+                    _weatherUIState.value = WeatherUIData(
+                        progressBarVisibility = View.VISIBLE,
+                        weatherCardVisibility = View.VISIBLE,
+                        cacheStatusVisibility = View.GONE
+                    )
+                }
+                is Resource.Success -> {
+                    resource.data?.let { wrapper ->
+                        val data = wrapper.weatherResponse
+                        val cacheStatusText = if (wrapper.isFromCache && wrapper.cacheTimestamp != null) {
+                            "(Cached) ${TimeUtils.getTimeAgo(wrapper.cacheTimestamp)}"
+                        } else {
+                            "Updated just now"
+                        }
+                        val iconUrl = "https://openweathermap.org/img/wn/${data.weather.firstOrNull()?.icon}@2x.png"
+
+                        _weatherUIState.value = WeatherUIData(
+                            locationName = data.name,
+                            description = data.weather.firstOrNull()?.description?.replaceFirstChar { it.uppercase() } ?: "N/A",
+                            temperature = "${data.main.temp.toInt()}°C",
+                            cacheStatus = cacheStatusText,
+                            iconUrl = iconUrl,
+                            progressBarVisibility = View.GONE,
+                            cacheStatusVisibility = View.VISIBLE,
+                            weatherCardVisibility = View.VISIBLE
+                        )
+                    }
+                }
+                is Resource.Error -> {
+                    // Optionally, you could add error-specific fields to WeatherUIData
+                    _weatherUIState.value = WeatherUIData(
+                        progressBarVisibility = View.GONE,
+                        weatherCardVisibility = View.GONE
+                    )
+                }
+            }
         }
     }
     fun fetchCurrentDeviceLocation() {
@@ -93,6 +139,7 @@ class MapViewModel @Inject constructor(
 
     fun logout() {
         authRepository.logoutUser()
+        _logoutComplete.value = true
     }
 
     fun saveLocation(location: UserLocation) {
