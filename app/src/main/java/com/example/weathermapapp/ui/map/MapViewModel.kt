@@ -196,11 +196,22 @@ class MapViewModel @Inject constructor(
         userRepository.getRealtimeAllUsersLocations()
             .onEach { result ->
                 if (result is Resource.Success) {
-                    val allLocations = result.data ?: emptyList()
+                    val allLocations = result.data.orEmpty().toMutableList()
+
+                    allLocations.addAll(bots)
+
                     _myRealtimeLocation.value = allLocations.firstOrNull { it.userId == myId }
                     _otherUsersRealtimeLocations.value = allLocations.filter { it.userId != myId }
                 }
             }
             .launchIn(viewModelScope)
     }
+
+    private val bots = listOf(
+        UserLocation(
+            latitude = 41.03, longitude = 28.99,
+            userId = "llama3-bot", userName = "Llama 3 Bot"
+        )
+        // You can add new bots here in the future.
+    )
 }

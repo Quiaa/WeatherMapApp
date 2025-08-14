@@ -136,6 +136,13 @@ class MapManager(private val context: Context, private val mapView: MapView) {
                     val intent = Intent(context, com.example.weathermapapp.ui.chat.ChatActivity::class.java).apply {
                         putExtra("USER_ID", userId)
                         putExtra("USER_NAME", userName)
+
+                        // If this is a bot, let's add the model name to the intent.
+                        if (userId.endsWith("-bot")) {
+                            // We're extracting the model name from the user ID (e.g. "llama3-bot" -> "llama3").
+                            val modelName = userId.removeSuffix("-bot")
+                            putExtra("MODEL_NAME", modelName)
+                        }
                     }
                     context.startActivity(intent)
                 } else if (json.has("name")) {

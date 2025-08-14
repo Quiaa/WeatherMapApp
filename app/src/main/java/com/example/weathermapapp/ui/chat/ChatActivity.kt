@@ -24,6 +24,7 @@ class ChatActivity : AppCompatActivity() {
 
         otherUserId = intent.getStringExtra("USER_ID")
         otherUserName = intent.getStringExtra("USER_NAME")
+        val modelName = intent.getStringExtra("MODEL_NAME")
 
         if (otherUserId == null || otherUserName == null) {
             // Handle error: close activity or show a message
@@ -36,7 +37,7 @@ class ChatActivity : AppCompatActivity() {
         setupClickListeners()
         observeViewModel()
 
-        chatViewModel.setChatPartner(otherUserId!!)
+        chatViewModel.setChatPartner(otherUserId!!, modelName)
     }
 
     private fun setupToolbar() {
