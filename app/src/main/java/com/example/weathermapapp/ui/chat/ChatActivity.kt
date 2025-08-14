@@ -6,6 +6,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.weathermapapp.databinding.ActivityChatBinding
+import com.example.weathermapapp.util.TtsManager
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -14,6 +15,7 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var binding: ActivityChatBinding
     private val chatViewModel: ChatViewModel by viewModels()
     private lateinit var chatAdapter: ChatAdapter
+    private var ttsManager: TtsManager? = null
 
     private var otherUserId: String? = null
     private var otherUserName: String? = null
@@ -34,6 +36,7 @@ class ChatActivity : AppCompatActivity() {
         }
 
         setupToolbar()
+        setupTts()
         setupRecyclerView()
         setupClickListeners()
         observeViewModel()
@@ -50,8 +53,19 @@ class ChatActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupTts() {
+        ttsManager = TtsManager(this) { isSuccess ->
+            if (!isSuccess) {
+                Toast.makeText(this, "TTS initialization failed.", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     private fun setupRecyclerView() {
         chatAdapter = ChatAdapter(chatViewModel.getCurrentUserId())
+        chatAdapter.setOnSpeakClickListener { message ->
+            ttsManager?.speak(message)
+        }
         binding.rvChatMessages.apply {
             adapter = chatAdapter
             layoutManager = LinearLayoutManager(this@ChatActivity).apply {
@@ -88,5 +102,10 @@ class ChatActivity : AppCompatActivity() {
             binding.etMessage.isEnabled = !isLoading
             binding.btnSend.isEnabled = !isLoading
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        ttsManager?.shutdown()
     }
 }

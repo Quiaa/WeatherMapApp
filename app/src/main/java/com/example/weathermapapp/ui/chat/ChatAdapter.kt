@@ -3,6 +3,7 @@ package com.example.weathermapapp.ui.chat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -11,10 +12,16 @@ import com.example.weathermapapp.R
 import com.example.weathermapapp.data.model.ChatMessage
 
 class ChatAdapter(private val currentUserId: String) :
-    ListAdapter<ChatMessage, ChatAdapter.MessageViewHolder>(MessageDiffCallback()) {
+    ListAdapter<ChatMessage, RecyclerView.ViewHolder>(MessageDiffCallback()) {
 
     private val VIEW_TYPE_SENT = 1
     private val VIEW_TYPE_RECEIVED = 2
+
+    private var onSpeakClickListener: ((String) -> Unit)? = null
+
+    fun setOnSpeakClickListener(listener: (String) -> Unit) {
+        onSpeakClickListener = listener
+    }
 
     override fun getItemViewType(position: Int): Int {
         val message = getItem(position)
@@ -25,26 +32,42 @@ class ChatAdapter(private val currentUserId: String) :
         }
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MessageViewHolder {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val layoutInflater = LayoutInflater.from(parent.context)
-        val view = if (viewType == VIEW_TYPE_SENT) {
-            layoutInflater.inflate(R.layout.item_chat_message_sent, parent, false)
+        return if (viewType == VIEW_TYPE_SENT) {
+            val view = layoutInflater.inflate(R.layout.item_chat_message_sent, parent, false)
+            SentMessageViewHolder(view)
         } else {
-            layoutInflater.inflate(R.layout.item_chat_message_received, parent, false)
+            val view = layoutInflater.inflate(R.layout.item_chat_message_received, parent, false)
+            ReceivedMessageViewHolder(view)
         }
-        return MessageViewHolder(view)
     }
 
-    override fun onBindViewHolder(holder: MessageViewHolder, position: Int) {
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val message = getItem(position)
-        holder.bind(message)
+        when (holder) {
+            is SentMessageViewHolder -> holder.bind(message)
+            is ReceivedMessageViewHolder -> holder.bind(message, onSpeakClickListener)
+        }
     }
 
-    class MessageViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    class SentMessageViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val messageText: TextView = itemView.findViewById(R.id.tvMessage)
 
         fun bind(message: ChatMessage) {
             messageText.text = message.message
+        }
+    }
+
+    class ReceivedMessageViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        private val messageText: TextView = itemView.findViewById(R.id.tvMessage)
+        private val speakButton: ImageButton = itemView.findViewById(R.id.btnSpeak)
+
+        fun bind(message: ChatMessage, onSpeakClickListener: ((String) -> Unit)?) {
+            messageText.text = message.message
+            speakButton.setOnClickListener {
+                onSpeakClickListener?.invoke(message.message)
+            }
         }
     }
 
