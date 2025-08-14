@@ -9,6 +9,7 @@ import com.example.weathermapapp.network.api.OllamaApiService
 import com.example.weathermapapp.util.LocationProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.gson.Gson
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -101,4 +102,8 @@ object AppModule {
     fun provideWeatherDao(database: WeatherDatabase): WeatherDao {
         return database.weatherDao()
     }
+
+    @Provides
+    @Singleton
+    fun provideGson(): Gson = Gson()
 }

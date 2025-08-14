@@ -10,6 +10,7 @@ import com.example.weathermapapp.data.repository.ChatRepository
 import com.example.weathermapapp.data.repository.OllamaRepository
 import com.example.weathermapapp.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import java.util.Date
 import javax.inject.Inject
@@ -36,13 +37,19 @@ class ChatViewModel @Inject constructor(
     }
 
     private fun loadMessages() {
-        viewModelScope.launch {
-            val currentUserId = authRepository.getCurrentUserId()
-            if (currentUserId != null) {
-                chatRepository.getChatMessages(currentUserId, otherUserId).collect {
-                    _messages.value = it
+        // If chatPartnerModel is null, it's a real user.
+        if (chatPartnerModel == null) {
+            viewModelScope.launch {
+                val currentUserId = authRepository.getCurrentUserId()
+                if (currentUserId != null) {
+                    chatRepository.getChatMessages(currentUserId, otherUserId).collect {
+                        _messages.value = it
+                    }
                 }
             }
+        } else {
+            // If there is a model name, it's a bot. Initialize the conversation as empty.
+            _messages.value = emptyList()
         }
     }
 
@@ -64,30 +71,47 @@ class ChatViewModel @Inject constructor(
             viewModelScope.launch {
                 _isLoading.value = true
                 // We're sending the dynamic model name to the repository.
-                when (val result = ollamaRepository.getLlamaResponse(messageText, model)) {
-                    is Resource.Success -> {
-                        val botMessage = ChatMessage(
-                            id = System.currentTimeMillis().toString(),
-                            senderId = otherUserId, // Bot ID
-                            receiverId = currentUserId,
-                            message = result.data ?: "Sorry, couldn't generate an answer.",
-                            timestamp = Date()
-                        )
-                        _messages.value = _messages.value.orEmpty() + botMessage
+                val botMessageId = System.currentTimeMillis().toString()
+                val initialBotMessage = ChatMessage(
+                    id = botMessageId,
+                    senderId = otherUserId,
+                    receiverId = currentUserId,
+                    message = "...", // Waiting message
+                    timestamp = Date()
+                )
+                _messages.value = _messages.value.orEmpty() + initialBotMessage
+
+                // Start listening to the flow.
+                ollamaRepository.getLlamaResponseStream(messageText, model)
+                    .catch { e ->
+                        // If there is an error, update the bot message.
+                        val currentMessages = _messages.value.orEmpty().toMutableList()
+                        val botMessageIndex = currentMessages.indexOfFirst { it.id == botMessageId }
+                        if (botMessageIndex != -1) {
+                            currentMessages[botMessageIndex] = currentMessages[botMessageIndex].copy(
+                                message = "Error: ${e.message}"
+                            )
+                            _messages.value = currentMessages
+                        }
+                        _isLoading.value = false
                     }
-                    is Resource.Error -> {
-                        val errorMessage = ChatMessage(
-                            id = System.currentTimeMillis().toString(),
-                            senderId = otherUserId, // Bot ID
-                            receiverId = currentUserId,
-                            message = "Error: ${result.message}",
-                            timestamp = Date()
-                        )
-                        _messages.value = _messages.value.orEmpty() + errorMessage
+                    .collect { token ->
+                        // 4. When a new token (word) arrives, update the bot message.
+                        val currentMessages = _messages.value.orEmpty().toMutableList()
+                        val botMessageIndex = currentMessages.indexOfFirst { it.id == botMessageId }
+                        if (botMessageIndex != -1) {
+                            val existingMessage = currentMessages[botMessageIndex]
+                            // If the message is "...", replace it with the incoming token; otherwise, add the token to the end.
+                            val newMessageText = if (existingMessage.message == "...") {
+                                token
+                            } else {
+                                existingMessage.message + token
+                            }
+                            currentMessages[botMessageIndex] = existingMessage.copy(message = newMessageText)
+                            _messages.value = currentMessages
+                        }
+                        _isLoading.value = false // When the first token arrives, close the loading indicator.
                     }
-                    else -> {}
-                }
-                _isLoading.value = false
             }
         } ?: run {
             // If there is no model name (i.e., it's a real user), send to Firebase.

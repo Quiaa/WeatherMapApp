@@ -1,6 +1,7 @@
 package com.example.weathermapapp.ui.chat
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -61,6 +62,11 @@ class ChatActivity : AppCompatActivity() {
 
     private fun setupClickListeners() {
         binding.btnSend.setOnClickListener {
+            if (chatViewModel.isLoading.value == true) {
+                Toast.makeText(this, "Please wait for the bot's response to finish..", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
             val messageText = binding.etMessage.text.toString().trim()
             if (messageText.isNotEmpty()) {
                 chatViewModel.sendMessage(messageText)
@@ -77,6 +83,10 @@ class ChatActivity : AppCompatActivity() {
                     binding.rvChatMessages.scrollToPosition(messages.size - 1)
                 }
             }
+        }
+        chatViewModel.isLoading.observe(this) { isLoading ->
+            binding.etMessage.isEnabled = !isLoading
+            binding.btnSend.isEnabled = !isLoading
         }
     }
 }
