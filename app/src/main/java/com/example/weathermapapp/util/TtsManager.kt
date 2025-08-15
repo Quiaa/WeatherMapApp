@@ -24,17 +24,26 @@ class TtsManager(
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            val result = tts?.setLanguage(Locale.getDefault())
+            val defaultLocale = Locale.getDefault()
+            val result = tts?.setLanguage(defaultLocale)
+
             if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                Log.e("TtsManager", "Language not supported")
-                isInitialized = false
-                onInitializationFinished(false)
+                Log.w("TtsManager", "Default language not supported, falling back to US English")
+                val fallbackResult = tts?.setLanguage(Locale.US)
+                if (fallbackResult == TextToSpeech.LANG_MISSING_DATA || fallbackResult == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    Log.e("TtsManager", "Fallback language (US English) also not supported.")
+                    isInitialized = false
+                    onInitializationFinished(false)
+                } else {
+                    isInitialized = true
+                    onInitializationFinished(true)
+                }
             } else {
                 isInitialized = true
                 onInitializationFinished(true)
             }
         } else {
-            Log.e("TtsManager", "Initialization failed")
+            Log.e("TtsManager", "TTS Initialization failed with status: $status")
             isInitialized = false
             onInitializationFinished(false)
         }

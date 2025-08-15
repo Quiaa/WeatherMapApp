@@ -91,6 +91,9 @@ dependencies {
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
 
+    // WebRTC
+    implementation("com.mesibo.api:webrtc:1.0.5")
+
     // Room
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)

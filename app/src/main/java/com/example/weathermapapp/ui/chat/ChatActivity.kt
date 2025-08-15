@@ -1,10 +1,14 @@
 package com.example.weathermapapp.ui.chat
 
+import android.content.Intent
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.weathermapapp.R
 import com.example.weathermapapp.databinding.ActivityChatBinding
 import com.example.weathermapapp.util.TtsManager
 import dagger.hilt.android.AndroidEntryPoint
@@ -19,6 +23,8 @@ class ChatActivity : AppCompatActivity() {
 
     private var otherUserId: String? = null
     private var otherUserName: String? = null
+    private var isBot: Boolean = false
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,9 +34,10 @@ class ChatActivity : AppCompatActivity() {
         otherUserId = intent.getStringExtra("USER_ID")
         otherUserName = intent.getStringExtra("USER_NAME")
         val modelName = intent.getStringExtra("MODEL_NAME")
+        isBot = modelName != null
+
 
         if (otherUserId == null || otherUserName == null) {
-            // Handle error: close activity or show a message
             finish()
             return
         }
@@ -53,6 +60,27 @@ class ChatActivity : AppCompatActivity() {
         }
     }
 
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.chat_menu, menu)
+        val videoCallItem = menu?.findItem(R.id.action_video_call)
+        // Eğer sohbet edilen kişi bot ise, görüntülü arama butonunu gizle
+        videoCallItem?.isVisible = !isBot
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_video_call -> {
+                // Video arama aktivitesini başlat
+                val intent = Intent(this, VideoCallActivity::class.java).apply {
+                    putExtra("target", otherUserId)
+                }
+                startActivity(intent)
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
     private fun setupTts() {
         ttsManager = TtsManager(this) { isSuccess ->
             if (!isSuccess) {
@@ -92,7 +120,6 @@ class ChatActivity : AppCompatActivity() {
     private fun observeViewModel() {
         chatViewModel.messages.observe(this) { messages ->
             chatAdapter.submitList(messages) {
-                // Scroll to the bottom to show the latest message
                 if (messages.isNotEmpty()) {
                     binding.rvChatMessages.scrollToPosition(messages.size - 1)
                 }
