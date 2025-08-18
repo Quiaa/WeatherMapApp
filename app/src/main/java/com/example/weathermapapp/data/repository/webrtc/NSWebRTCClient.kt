@@ -170,7 +170,9 @@ class NSWebRTCClient @Inject constructor(
             videoCapturer?.stopCapture()
             videoCapturer?.dispose()
             localStream?.dispose()
+            localStream = null
             peerConnection?.close()
+            peerConnection = null
         } catch (e: Exception) {
             e.printStackTrace()
         }
