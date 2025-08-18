@@ -96,6 +96,12 @@ dependencies {
     implementation(libs.room.ktx)
     kapt(libs.room.compiler)
 
+    // WebRTC
+    implementation("com.mesibo.api:webrtc:1.0.5")
+
+    // Gson
+    implementation("com.google.code.gson:gson:2.10.1")
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

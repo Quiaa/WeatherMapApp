@@ -1,11 +1,14 @@
 package com.example.weathermapapp.ui.chat
 
+import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.weathermapapp.databinding.ActivityChatBinding
+import com.example.weathermapapp.ui.webrtc.VideoCallActivity
 import com.example.weathermapapp.util.TtsManager
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -19,6 +22,7 @@ class ChatActivity : AppCompatActivity() {
 
     private var otherUserId: String? = null
     private var otherUserName: String? = null
+    private var isBot: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,6 +32,7 @@ class ChatActivity : AppCompatActivity() {
         otherUserId = intent.getStringExtra("USER_ID")
         otherUserName = intent.getStringExtra("USER_NAME")
         val modelName = intent.getStringExtra("MODEL_NAME")
+        isBot = modelName != null
 
         if (otherUserId == null || otherUserName == null) {
             // Handle error: close activity or show a message
@@ -50,6 +55,18 @@ class ChatActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         binding.toolbar.setNavigationOnClickListener {
             finish()
+        }
+
+        if (!isBot) {
+            binding.btnVideoCall.visibility = View.VISIBLE
+            binding.btnVideoCall.setOnClickListener {
+                val intent = Intent(this, VideoCallActivity::class.java).apply {
+                    putExtra("target", otherUserId)
+                    putExtra("isCaller", true) // This user is the caller.
+                }
+                chatViewModel.startVideoCall() // Send the call request.
+                startActivity(intent) // Open the video chat screen.
+            }
         }
     }
 

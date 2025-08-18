@@ -8,6 +8,7 @@ import com.example.weathermapapp.data.model.ChatMessage
 import com.example.weathermapapp.data.repository.AuthRepository
 import com.example.weathermapapp.data.repository.ChatRepository
 import com.example.weathermapapp.data.repository.OllamaRepository
+import com.example.weathermapapp.ui.webrtc.WebRTCService
 import com.example.weathermapapp.util.TtsManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.catch
@@ -20,7 +21,8 @@ import javax.inject.Inject
 class ChatViewModel @Inject constructor(
     private val chatRepository: ChatRepository,
     private val authRepository: AuthRepository,
-    private val ollamaRepository: OllamaRepository
+    private val ollamaRepository: OllamaRepository,
+    private val webRTCService: WebRTCService
 ) : ViewModel() {
 
     private val _messages = MutableLiveData<List<ChatMessage>>()
@@ -62,6 +64,17 @@ class ChatViewModel @Inject constructor(
         } else {
             // If there is a model name, it's a bot. Initialize the conversation as empty.
             _messages.value = emptyList()
+        }
+    }
+
+    fun startVideoCall() {
+        // Only search for real users, not bots.
+        if (chatPartnerModel == null) {
+            val currentUserId = authRepository.getCurrentUserId() ?: return
+            // Start the WebRTC service with our own user ID.
+            webRTCService.initialize(currentUserId)
+            // Send a call request to the target user.
+            webRTCService.sendCallRequest(otherUserId, true)
         }
     }
 

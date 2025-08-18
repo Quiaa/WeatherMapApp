@@ -22,6 +22,9 @@ import com.example.weathermapapp.util.TimeUtils
 import com.mapbox.geojson.Point
 import com.mapbox.maps.plugin.gestures.OnMapClickListener
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.appcompat.app.AlertDialog
+import com.example.weathermapapp.data.model.webrtc.NSDataModel
+import com.example.weathermapapp.ui.webrtc.VideoCallActivity
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -135,6 +138,34 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
             finish()
         }
+
+        mapViewModel.incomingCall.observe(this) { model ->
+            model?.let {
+                showIncomingCallDialog(it)
+                mapViewModel.clearIncomingCallEvent() // Clear the event.
+            }
+        }
+    }
+
+    private fun showIncomingCallDialog(model: NSDataModel) {
+        // It would be better to fetch and display the username from Firestore, but for now we're just showing the ID.
+        AlertDialog.Builder(this)
+            .setTitle("Incoming Video Call")
+            .setMessage("${model.sender} is calling you.")
+            .setPositiveButton("Accept") { dialog, _ ->
+                val intent = Intent(this, VideoCallActivity::class.java).apply {
+                    putExtra("target", model.sender)
+                    putExtra("isCaller", false) // This user is the caller.
+                }
+                startActivity(intent)
+                dialog.dismiss()
+            }
+            .setNegativeButton("Decline") { dialog, _ ->
+                // TODO: Send a signal for decline
+                dialog.dismiss()
+            }
+            .setCancelable(false)
+            .show()
     }
 
     private fun updateWeatherUI(uiState: WeatherUIData) {

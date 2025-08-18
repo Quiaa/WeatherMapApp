@@ -4,6 +4,9 @@ import android.content.Context
 import androidx.room.Room
 import com.example.weathermapapp.data.db.WeatherDao
 import com.example.weathermapapp.data.db.WeatherDatabase
+import com.example.weathermapapp.data.repository.webrtc.FirebaseClient
+import com.example.weathermapapp.data.repository.webrtc.MainRepository
+import com.example.weathermapapp.data.repository.webrtc.NSWebRTCClient
 import com.example.weathermapapp.network.api.WeatherApiService
 import com.example.weathermapapp.network.api.OllamaApiService
 import com.example.weathermapapp.util.LocationProvider
@@ -106,4 +109,22 @@ object AppModule {
     @Provides
     @Singleton
     fun provideGson(): Gson = Gson()
+
+    @Provides
+    @Singleton
+    fun provideFirebaseClient(firestore: FirebaseFirestore, auth: FirebaseAuth, gson: Gson): FirebaseClient {
+        return FirebaseClient(firestore, auth, gson)
+    }
+
+    @Provides
+    @Singleton
+    fun provideNSWebRTCClient(@ApplicationContext context: Context, gson: Gson): NSWebRTCClient {
+        return NSWebRTCClient(context, gson)
+    }
+
+    @Provides
+    @Singleton
+    fun provideMainRepository(firebaseClient: FirebaseClient, webRTCClient: NSWebRTCClient, gson: Gson): MainRepository {
+        return MainRepository(firebaseClient, webRTCClient, gson)
+    }
 }

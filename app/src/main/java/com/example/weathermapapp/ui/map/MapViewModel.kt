@@ -22,13 +22,16 @@ import androidx.lifecycle.MediatorLiveData
 import com.example.weathermapapp.data.model.WeatherDataWrapper
 import com.example.weathermapapp.ui.main.WeatherUIData
 import com.example.weathermapapp.util.TimeUtils
+import com.example.weathermapapp.data.model.webrtc.NSDataModel
+import com.example.weathermapapp.ui.webrtc.WebRTCService
 
 @HiltViewModel
 class MapViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
     private val weatherRepository: WeatherRepository,
-    private val locationProvider: LocationProvider
+    private val locationProvider: LocationProvider,
+    private val webRTCService: WebRTCService
 ) : ViewModel() {
 
     // LiveData for the current device location event
@@ -60,6 +63,8 @@ class MapViewModel @Inject constructor(
 
     private val _logoutComplete = MutableLiveData<Boolean>()
     val logoutComplete: LiveData<Boolean> = _logoutComplete
+    private val _incomingCall = MutableLiveData<NSDataModel?>()
+    val incomingCall: LiveData<NSDataModel?> = _incomingCall
 
     private var lastLocationUpdateTime = 0L
     private val locationUpdateThreshold = 5000L // 5 seconds
@@ -105,7 +110,27 @@ class MapViewModel @Inject constructor(
                 }
             }
         }
+        initializeWebRTC()
     }
+
+    private fun initializeWebRTC() {
+        authRepository.getCurrentUserId()?.let { userId ->
+            webRTCService.initialize(userId)
+            webRTCService.listener = object : WebRTCService.Listener {
+                override fun onCallRequestReceived(model: NSDataModel) {
+                    _incomingCall.postValue(model)
+                }
+
+                override fun onCallEnded() {
+                    // This feature can be added later.
+                }
+            }
+        }
+    }
+    fun clearIncomingCallEvent() {
+        _incomingCall.value = null
+    }
+
     fun fetchCurrentDeviceLocation() {
         _currentDeviceLocation.value = Resource.Loading()
         locationProvider.getCurrentLocation(
