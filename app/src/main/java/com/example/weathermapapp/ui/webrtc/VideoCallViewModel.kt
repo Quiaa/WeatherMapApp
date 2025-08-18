@@ -24,10 +24,6 @@ class VideoCallViewModel @Inject constructor(
 
     init {
         webRTCService.listener = object : WebRTCService.Listener {
-            override fun onCallRequestReceived(model: com.example.weathermapapp.data.model.webrtc.NSDataModel) {
-                // This ViewModel only exists when the call screen is present, so this event won't be processed here.
-            }
-
             override fun onCallEnded() {
                 _callEnded.postValue(true)
             }

@@ -23,6 +23,8 @@ import com.example.weathermapapp.data.model.WeatherDataWrapper
 import com.example.weathermapapp.ui.main.WeatherUIData
 import com.example.weathermapapp.util.TimeUtils
 import com.example.weathermapapp.data.model.webrtc.NSDataModel
+import com.example.weathermapapp.data.model.webrtc.NSDataModelType
+import com.example.weathermapapp.data.repository.webrtc.MainRepository
 import com.example.weathermapapp.ui.webrtc.WebRTCService
 
 @HiltViewModel
@@ -31,7 +33,7 @@ class MapViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val weatherRepository: WeatherRepository,
     private val locationProvider: LocationProvider,
-    private val webRTCService: WebRTCService
+    private val mainRepository: MainRepository
 ) : ViewModel() {
 
     // LiveData for the current device location event
@@ -110,19 +112,10 @@ class MapViewModel @Inject constructor(
                 }
             }
         }
-        initializeWebRTC()
-    }
-
-    private fun initializeWebRTC() {
-        authRepository.getCurrentUserId()?.let { userId ->
-            webRTCService.initialize(userId)
-            webRTCService.listener = object : WebRTCService.Listener {
-                override fun onCallRequestReceived(model: NSDataModel) {
-                    _incomingCall.postValue(model)
-                }
-
-                override fun onCallEnded() {
-                    // This feature can be added later.
+        viewModelScope.launch {
+            mainRepository.signalingEvent.collect {
+                if (it.type == NSDataModelType.StartVideoCall) {
+                    _incomingCall.postValue(it)
                 }
             }
         }

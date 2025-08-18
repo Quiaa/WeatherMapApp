@@ -36,10 +36,15 @@
         </activity>
 
         <activity
+            android:name=".ui.webrtc.IncomingCallActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.WeatherMapApp" />
+        <activity
             android:name=".ui.webrtc.VideoCallActivity"
             android:exported="false"
             android:screenOrientation="portrait"
-            android:theme="@style/Theme.AppCompat.NoActionBar"/>
+            android:theme="@style/Theme.WeatherMapApp" />
 
         <activity
             android:name=".ui.auth.RegisterActivity"

@@ -24,17 +24,47 @@ class TtsManager(
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            val result = tts?.setLanguage(Locale.getDefault())
-            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                Log.e("TtsManager", "Language not supported")
-                isInitialized = false
-                onInitializationFinished(false)
-            } else {
+            // Try to set the default language.
+            val defaultLocale = Locale.getDefault()
+            when (tts?.setLanguage(defaultLocale)) {
+                TextToSpeech.LANG_AVAILABLE, TextToSpeech.LANG_COUNTRY_AVAILABLE, TextToSpeech.LANG_COUNTRY_VAR_AVAILABLE -> {
+                    Log.d("TtsManager", "Default language '${defaultLocale.toLanguageTag()}' is supported.")
+                    isInitialized = true
+                    onInitializationFinished(true)
+                    return
+                }
+            }
+
+            Log.w("TtsManager", "Default language '${defaultLocale.toLanguageTag()}' not supported. Trying fallbacks.")
+
+            // Fallback 1: US English
+            val usLocale = Locale.US
+            when (tts?.setLanguage(usLocale)) {
+                TextToSpeech.LANG_AVAILABLE, TextToSpeech.LANG_COUNTRY_AVAILABLE, TextToSpeech.LANG_COUNTRY_VAR_AVAILABLE -> {
+                    Log.d("TtsManager", "Fallback language '${usLocale.toLanguageTag()}' is supported.")
+                    isInitialized = true
+                    onInitializationFinished(true)
+                    return
+                }
+            }
+
+            Log.w("TtsManager", "Fallback language '${usLocale.toLanguageTag()}' not supported. Searching for any available language.")
+
+            // Fallback 2: Any available language
+            tts?.availableLanguages?.firstOrNull()?.let { availableLocale ->
+                tts?.language = availableLocale
+                Log.d("TtsManager", "Found and set available language: '${availableLocale.toLanguageTag()}'")
                 isInitialized = true
                 onInitializationFinished(true)
+                return
             }
+
+            Log.e("TtsManager", "No supported language found on the device.")
+            isInitialized = false
+            onInitializationFinished(false)
+
         } else {
-            Log.e("TtsManager", "Initialization failed")
+            Log.e("TtsManager", "TTS Engine initialization failed with status: $status")
             isInitialized = false
             onInitializationFinished(false)
         }

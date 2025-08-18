@@ -3,9 +3,13 @@ package com.example.weathermapapp.data.repository.webrtc
 import com.example.weathermapapp.data.model.webrtc.NSDataModel
 import com.example.weathermapapp.data.model.webrtc.NSDataModelType
 import com.google.gson.Gson
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import org.webrtc.*
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class MainRepository @Inject constructor(
     private val firebaseClient: FirebaseClient,
     private val webRTCClient: NSWebRTCClient,
@@ -14,12 +18,16 @@ class MainRepository @Inject constructor(
 
     private var target: String? = null
     private var currentUsername: String? = null
-    var listener: Listener? = null
+
     private var isSignalingReady = false
     private val pendingEvents = mutableListOf<NSDataModel>()
 
+    private val _signalingEvent = MutableSharedFlow<NSDataModel>(replay = 1)
+    val signalingEvent = _signalingEvent.asSharedFlow()
+
     init {
         webRTCClient.listener = this
+        initFirebase()
     }
 
     fun initWebrtcClient(username: String, observer: PeerConnection.Observer) {
@@ -27,27 +35,22 @@ class MainRepository @Inject constructor(
         webRTCClient.initializeWebrtcClient(observer)
     }
 
-    fun initFirebase() {
+    private fun initFirebase() {
         firebaseClient.subscribeForLatestEvent { event ->
-            // The call request should be handled immediately.
             if (event.type == NSDataModelType.StartVideoCall) {
                 target = event.sender
-                listener?.onCallRequestReceived(event)
+                _signalingEvent.tryEmit(event)
                 return@subscribeForLatestEvent
             }
 
             if (isSignalingReady) {
                 handleEvent(event)
             } else {
-                // Only queue events that are essential for call setup.
-                // Ignore stale events like EndCall.
                 when (event.type) {
                     NSDataModelType.Offer, NSDataModelType.Answer, NSDataModelType.IceCandidates -> {
                         pendingEvents.add(event)
                     }
-                    else -> {
-                        // Do nothing
-                    }
+                    else -> { /* Ignore */ }
                 }
             }
         }
@@ -60,6 +63,12 @@ class MainRepository @Inject constructor(
 
     private fun processPendingEvents() {
         pendingEvents.forEach { handleEvent(it) }
+        pendingEvents.clear()
+    }
+
+    private fun resetState() {
+        isSignalingReady = false
+        target = null
         pendingEvents.clear()
     }
 
@@ -86,8 +95,10 @@ class MainRepository @Inject constructor(
                 candidate?.let { webRTCClient.addIceCandidateToPeer(it) }
             }
             NSDataModelType.EndCall -> {
-                listener?.onCallEnded()
+                _signalingEvent.tryEmit(event)
                 firebaseClient.clearLatestEvent()
+                webRTCClient.closeConnection()
+                resetState()
             }
             else -> Unit
         }
@@ -121,8 +132,13 @@ class MainRepository @Inject constructor(
                 firebaseClient.sendEvent(NSDataModel(NSDataModelType.EndCall, cUser, it))
             }
         }
-        webRTCClient.closeConnection()
         firebaseClient.clearLatestEvent()
+        webRTCClient.closeConnection()
+        resetState()
+    }
+
+    fun endCall(sender: String, target: String) {
+        firebaseClient.sendEvent(NSDataModel(NSDataModelType.EndCall, sender, target))
     }
 
     fun sendIceCandidate(target: String, iceCandidate: IceCandidate) {
@@ -152,10 +168,5 @@ class MainRepository @Inject constructor(
                 firebaseClient.sendEvent(model.copy(sender = cUser, target = targetUser))
             }
         }
-    }
-
-    interface Listener {
-        fun onCallRequestReceived(model: NSDataModel)
-        fun onCallEnded()
     }
 }

@@ -1,7 +1,13 @@
 package com.example.weathermapapp.ui.webrtc
 
 import com.example.weathermapapp.data.model.webrtc.NSDataModel
+import com.example.weathermapapp.data.model.webrtc.NSDataModelType
 import com.example.weathermapapp.data.repository.webrtc.MainRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import org.webrtc.*
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -9,16 +15,24 @@ import javax.inject.Singleton
 @Singleton
 class WebRTCService @Inject constructor(
     private val mainRepository: MainRepository
-) : MainRepository.Listener {
+) {
 
     var listener: Listener? = null
     var remoteSurfaceView: SurfaceViewRenderer? = null
     private var targetUser: String? = null // To target the user.
-
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
 
     init {
-        mainRepository.listener = this
+        mainRepository.signalingEvent.onEach {
+            when (it.type) {
+                NSDataModelType.EndCall -> {
+                    listener?.onCallEnded()
+                }
+                else -> {
+                }
+            }
+        }.launchIn(serviceScope)
     }
 
     fun initialize(username: String) {
@@ -56,7 +70,6 @@ class WebRTCService @Inject constructor(
                 }
             }
         })
-        mainRepository.initFirebase()
     }
 
     fun setupViews(localView: SurfaceViewRenderer, remoteView: SurfaceViewRenderer, target: String, isCaller: Boolean) {
@@ -83,6 +96,10 @@ class WebRTCService @Inject constructor(
         targetUser = null // Clear the target when the search is finished.
     }
 
+    fun endCall(sender: String, target: String) {
+        mainRepository.endCall(sender, target)
+    }
+
     fun switchCamera() {
         mainRepository.switchCamera()
     }
@@ -91,16 +108,7 @@ class WebRTCService @Inject constructor(
         mainRepository.toggleAudio(isMuted)
     }
 
-    override fun onCallRequestReceived(model: NSDataModel) {
-        listener?.onCallRequestReceived(model)
-    }
-
-    override fun onCallEnded() {
-        listener?.onCallEnded()
-    }
-
     interface Listener {
-        fun onCallRequestReceived(model: NSDataModel)
         fun onCallEnded()
     }
 }
