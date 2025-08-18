@@ -99,6 +99,7 @@ class VideoCallActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        viewModel.endCall()
         super.onDestroy()
         binding.localView.release()
         binding.remoteView.release()

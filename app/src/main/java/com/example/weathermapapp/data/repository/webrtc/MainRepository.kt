@@ -15,6 +15,8 @@ class MainRepository @Inject constructor(
     private var target: String? = null
     private var currentUsername: String? = null
     var listener: Listener? = null
+    private var isSignalingReady = false
+    private val pendingEvents = mutableListOf<NSDataModel>()
 
     init {
         webRTCClient.listener = this
@@ -27,36 +29,67 @@ class MainRepository @Inject constructor(
 
     fun initFirebase() {
         firebaseClient.subscribeForLatestEvent { event ->
-            when (event.type) {
-                NSDataModelType.Offer -> {
-                    webRTCClient.onRemoteSessionReceived(
-                        SessionDescription(SessionDescription.Type.OFFER, event.data.toString())
-                    )
-                    target = event.sender
-                    webRTCClient.answer(event.sender)
-                }
-                NSDataModelType.Answer -> {
-                    webRTCClient.onRemoteSessionReceived(
-                        SessionDescription(SessionDescription.Type.ANSWER, event.data.toString())
-                    )
-                }
-                NSDataModelType.IceCandidates -> {
-                    val candidate = try {
-                        gson.fromJson(event.data.toString(), IceCandidate::class.java)
-                    } catch (e: Exception) {
-                        null
-                    }
-                    candidate?.let { webRTCClient.addIceCandidateToPeer(it) }
-                }
-                NSDataModelType.StartVideoCall -> {
-                    target = event.sender
-                    listener?.onCallRequestReceived(event)
-                }
-                NSDataModelType.EndCall -> {
-                    listener?.onCallEnded()
-                }
-                else -> Unit
+            // The call request should be handled immediately.
+            if (event.type == NSDataModelType.StartVideoCall) {
+                target = event.sender
+                listener?.onCallRequestReceived(event)
+                return@subscribeForLatestEvent
             }
+
+            if (isSignalingReady) {
+                handleEvent(event)
+            } else {
+                // Only queue events that are essential for call setup.
+                // Ignore stale events like EndCall.
+                when (event.type) {
+                    NSDataModelType.Offer, NSDataModelType.Answer, NSDataModelType.IceCandidates -> {
+                        pendingEvents.add(event)
+                    }
+                    else -> {
+                        // Do nothing
+                    }
+                }
+            }
+        }
+    }
+
+    fun onViewsReady() {
+        isSignalingReady = true
+        processPendingEvents()
+    }
+
+    private fun processPendingEvents() {
+        pendingEvents.forEach { handleEvent(it) }
+        pendingEvents.clear()
+    }
+
+    private fun handleEvent(event: NSDataModel) {
+        when (event.type) {
+            NSDataModelType.Offer -> {
+                webRTCClient.onRemoteSessionReceived(
+                    SessionDescription(SessionDescription.Type.OFFER, event.data.toString())
+                )
+                target = event.sender
+                webRTCClient.answer(event.sender)
+            }
+            NSDataModelType.Answer -> {
+                webRTCClient.onRemoteSessionReceived(
+                    SessionDescription(SessionDescription.Type.ANSWER, event.data.toString())
+                )
+            }
+            NSDataModelType.IceCandidates -> {
+                val candidate = try {
+                    gson.fromJson(event.data.toString(), IceCandidate::class.java)
+                } catch (e: Exception) {
+                    null
+                }
+                candidate?.let { webRTCClient.addIceCandidateToPeer(it) }
+            }
+            NSDataModelType.EndCall -> {
+                listener?.onCallEnded()
+                firebaseClient.clearLatestEvent()
+            }
+            else -> Unit
         }
     }
 

@@ -65,6 +65,7 @@ class WebRTCService @Inject constructor(
         mainRepository.initLocalSurfaceView(localView, localView)
         mainRepository.initRemoteSurfaceView(remoteView)
         mainRepository.setTarget(target)
+        mainRepository.onViewsReady()
 
         if (isCaller) {
             mainRepository.startCall()

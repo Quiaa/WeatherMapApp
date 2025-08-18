@@ -20,6 +20,8 @@ class VideoCallViewModel @Inject constructor(
     private val _isMuted = MutableLiveData(false)
     val isMuted: LiveData<Boolean> = _isMuted
 
+    private var isCallEnding = false
+
     init {
         webRTCService.listener = object : WebRTCService.Listener {
             override fun onCallRequestReceived(model: com.example.weathermapapp.data.model.webrtc.NSDataModel) {
@@ -41,7 +43,10 @@ class VideoCallViewModel @Inject constructor(
     }
 
     fun endCall() {
-        webRTCService.endCall()
+        if (!isCallEnding) {
+            isCallEnding = true
+            webRTCService.endCall()
+        }
     }
 
     fun switchCamera() {
