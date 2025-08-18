@@ -87,7 +87,7 @@ class VideoCallActivity : AppCompatActivity() {
             viewModel.toggleMic()
         }
         binding.btnPip.setOnClickListener {
-            enterPipMode()
+            viewModel.enterPipMode()
         }
     }
 
@@ -105,6 +105,12 @@ class VideoCallActivity : AppCompatActivity() {
             } else {
                 // Change the icon.
             }
+        }
+        viewModel.pipMode.observe(this) {
+            enterPipMode()
+        }
+        viewModel.uiState.observe(this) { state ->
+            updateUiWithState(state)
         }
     }
 
@@ -133,35 +139,25 @@ class VideoCallActivity : AppCompatActivity() {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        enterPipMode()
+        viewModel.enterPipMode()
     }
 
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        viewModel.onPipModeChanged(isInPictureInPictureMode)
+    }
+
+    private fun updateUiWithState(state: UiState) {
         val layoutParams = binding.localView.layoutParams
-        if (isInPictureInPictureMode) {
-            // Shrink the local view for PiP mode
-            layoutParams.width = 48.toPx()
-            layoutParams.height = 60.toPx()
-            binding.localView.layoutParams = layoutParams
+        layoutParams.width = state.localViewWidth.toPx()
+        layoutParams.height = state.localViewHeight.toPx()
+        binding.localView.layoutParams = layoutParams
 
-            // Hide controls
-            binding.btnEndCall.visibility = View.GONE
-            binding.btnSwitchCamera.visibility = View.GONE
-            binding.btnMic.visibility = View.GONE
-            binding.btnPip.visibility = View.GONE
-        } else {
-            // Restore the local view size
-            layoutParams.width = 120.toPx()
-            layoutParams.height = 150.toPx()
-            binding.localView.layoutParams = layoutParams
+        binding.btnEndCall.visibility = state.controlsVisibility
+        binding.btnSwitchCamera.visibility = state.controlsVisibility
+        binding.btnMic.visibility = state.controlsVisibility
+        binding.btnPip.visibility = state.controlsVisibility
 
-            // Show controls and local view
-            binding.localView.visibility = View.VISIBLE
-            binding.btnEndCall.visibility = View.VISIBLE
-            binding.btnSwitchCamera.visibility = View.VISIBLE
-            binding.btnMic.visibility = View.VISIBLE
-            binding.btnPip.visibility = View.VISIBLE
-        }
+        binding.localView.visibility = View.VISIBLE
     }
 }
