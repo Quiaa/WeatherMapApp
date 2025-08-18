@@ -48,7 +48,9 @@
             android:name=".ui.webrtc.VideoCallActivity"
             android:exported="false"
             android:screenOrientation="portrait"
-            android:theme="@style/Theme.WeatherMapApp" />
+            android:theme="@style/Theme.WeatherMapApp"
+            android:supportsPictureInPicture="true"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation" />
 
         <activity
             android:name=".ui.auth.RegisterActivity"

@@ -1,4 +1,8 @@
-<shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <solid android:color="#FF0000"/>
-    <corners android:radius="30dp"/>
-</shape>
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="?android:attr/colorControlHighlight">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#FF0000"/>
+        </shape>
+    </item>
+</ripple>

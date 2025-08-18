@@ -1,8 +1,13 @@
 package com.example.weathermapapp.ui.webrtc
 
 import android.Manifest
+import android.app.PictureInPictureParams
 import android.content.pm.PackageManager
+import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
+import android.util.Rational
+import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -103,5 +108,30 @@ class VideoCallActivity : AppCompatActivity() {
         super.onDestroy()
         binding.localView.release()
         binding.remoteView.release()
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val params = PictureInPictureParams.Builder()
+                .setAspectRatio(Rational(9, 16))
+                .build()
+            enterPictureInPictureMode(params)
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        if (isInPictureInPictureMode) {
+            binding.localView.visibility = View.GONE
+            binding.btnEndCall.visibility = View.GONE
+            binding.btnSwitchCamera.visibility = View.GONE
+            binding.btnMic.visibility = View.GONE
+        } else {
+            binding.localView.visibility = View.VISIBLE
+            binding.btnEndCall.visibility = View.VISIBLE
+            binding.btnSwitchCamera.visibility = View.VISIBLE
+            binding.btnMic.visibility = View.VISIBLE
+        }
     }
 }
