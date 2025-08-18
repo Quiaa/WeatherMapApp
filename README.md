@@ -11,6 +11,7 @@ WeatherMap is a modern Android application that provides real-time weather infor
 - **Real-time Location Sharing**: See where other users are on the map in real-time. Your location is also shared with others.
 - **AI-Powered Assistant**: Chat with an AI assistant powered by a local Large Language Model (Ollama) to get weather-related information and more.
 - **Real-time Private Chat**: Engage in one-on-one chats with other users on the map.
+- **Real-time Video and Voice Calls**: Engage in one-on-one video and voice calls with other users.
 - **Weather Data Caching**: Weather data is cached locally using Room, allowing for offline access and a faster user experience.
 - **Detailed Weather Information**: Displays current temperature, weather conditions (e.g., "Clear sky"), and a descriptive icon.
 - **Modern Architecture**: Built with Kotlin and follows modern Android development practices using Android ViewModel for state management.
@@ -24,6 +25,7 @@ WeatherMap is a modern Android application that provides real-time weather infor
 - **Mapbox SDK**: For displaying the interactive map and handling map gestures.
 - **OpenWeatherMap API**: To fetch weather data.
 - **Ollama**: For running the local Large Language Model that powers the AI assistant.
+- **Mesibo WebRTC**: For real-time video and voice communication.
 - **Retrofit**: For making network requests to the OpenWeatherMap and Ollama APIs.
 - **Glide**: For loading and displaying weather icons.
 - **Android Architecture Components**:
