@@ -65,8 +65,6 @@ class MapViewModel @Inject constructor(
 
     private val _logoutComplete = MutableLiveData<Boolean>()
     val logoutComplete: LiveData<Boolean> = _logoutComplete
-    private val _incomingCall = MutableLiveData<NSDataModel?>()
-    val incomingCall: LiveData<NSDataModel?> = _incomingCall
 
     private var lastLocationUpdateTime = 0L
     private val locationUpdateThreshold = 5000L // 5 seconds
@@ -115,13 +113,9 @@ class MapViewModel @Inject constructor(
         viewModelScope.launch {
             mainRepository.signalingEvent.collect {
                 if (it.type == NSDataModelType.StartVideoCall) {
-                    _incomingCall.postValue(it)
                 }
             }
         }
-    }
-    fun clearIncomingCallEvent() {
-        _incomingCall.value = null
     }
 
     fun fetchCurrentDeviceLocation() {

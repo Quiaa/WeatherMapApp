@@ -25,6 +25,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import androidx.appcompat.app.AlertDialog
 import com.example.weathermapapp.data.model.webrtc.NSDataModel
 import com.example.weathermapapp.ui.webrtc.IncomingCallActivity
+import com.example.weathermapapp.ui.webrtc.IncomingCallService
 import com.example.weathermapapp.ui.webrtc.VideoCallActivity
 
 @AndroidEntryPoint
@@ -64,6 +65,12 @@ class MainActivity : AppCompatActivity() {
         setupClickListeners()
         observeViewModels()
         checkAndRequestLocationPermission()
+        startIncomingCallService()
+    }
+
+    private fun startIncomingCallService() {
+        val intent = Intent(this, IncomingCallService::class.java)
+        startService(intent)
     }
 
     private fun onMapClick(point: Point) {
@@ -137,18 +144,14 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(this, LoginActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             startActivity(intent)
+            stopIncomingCallService()
             finish()
         }
+    }
 
-        mapViewModel.incomingCall.observe(this) { model ->
-            model?.let {
-                val intent = Intent(this, IncomingCallActivity::class.java).apply {
-                    putExtra("callerId", it.sender)
-                }
-                startActivity(intent)
-                mapViewModel.clearIncomingCallEvent() // Clear the event.
-            }
-        }
+    private fun stopIncomingCallService() {
+        val intent = Intent(this, IncomingCallService::class.java)
+        stopService(intent)
     }
 
     private fun updateWeatherUI(uiState: WeatherUIData) {
@@ -201,5 +204,8 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         binding.mapView.onDestroy()
         mapViewModel.stopRealtimeLocationUpdates()
+        if (isFinishing) {
+            stopIncomingCallService()
+        }
     }
 }
