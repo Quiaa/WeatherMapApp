@@ -3,8 +3,12 @@ package com.example.weathermapapp.data.repository.webrtc
 import com.example.weathermapapp.data.model.webrtc.NSDataModel
 import com.example.weathermapapp.data.model.webrtc.NSDataModelType
 import com.google.gson.Gson
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
 import org.webrtc.*
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -15,6 +19,8 @@ class MainRepository @Inject constructor(
     private val webRTCClient: NSWebRTCClient,
     private val gson: Gson
 ) : NSWebRTCClient.Listener {
+
+    private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private var target: String? = null
     private var currentUsername: String? = null
@@ -115,18 +121,20 @@ class MainRepository @Inject constructor(
     }
 
     fun sendCallRequest(target: String, isVideoCall: Boolean) {
-        currentUsername?.let {
-            firebaseClient.sendEvent(
-                NSDataModel(
-                    if (isVideoCall) NSDataModelType.StartVideoCall else NSDataModelType.StartAudioCall,
-                    it,
-                    target
+        repositoryScope.launch {
+            currentUsername?.let {
+                firebaseClient.sendEvent(
+                    NSDataModel(
+                        if (isVideoCall) NSDataModelType.StartVideoCall else NSDataModelType.StartAudioCall,
+                        it,
+                        target
+                    )
                 )
-            )
+            }
         }
     }
 
-    fun endCall() {
+    suspend fun endCall() {
         target?.let {
             currentUsername?.let { cUser ->
                 firebaseClient.sendEvent(NSDataModel(NSDataModelType.EndCall, cUser, it))
@@ -137,7 +145,7 @@ class MainRepository @Inject constructor(
         resetState()
     }
 
-    fun endCall(sender: String, target: String) {
+    suspend fun endCall(sender: String, target: String) {
         firebaseClient.sendEvent(NSDataModel(NSDataModelType.EndCall, sender, target))
     }
 
@@ -162,10 +170,12 @@ class MainRepository @Inject constructor(
     }
 
     override fun onTransferDataToOtherPeer(model: NSDataModel) {
-        // Update the sender and target here and send it.
-        currentUsername?.let { cUser->
-            target?.let { targetUser ->
-                firebaseClient.sendEvent(model.copy(sender = cUser, target = targetUser))
+        repositoryScope.launch {
+            // Update the sender and target here and send it.
+            currentUsername?.let { cUser ->
+                target?.let { targetUser ->
+                    firebaseClient.sendEvent(model.copy(sender = cUser, target = targetUser))
+                }
             }
         }
     }

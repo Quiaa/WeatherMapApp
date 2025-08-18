@@ -4,6 +4,7 @@ import com.example.weathermapapp.data.model.webrtc.NSDataModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.gson.Gson
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 class FirebaseClient @Inject constructor(
@@ -16,9 +17,9 @@ class FirebaseClient @Inject constructor(
     private val currentUserId: String?
         get() = auth.currentUser?.uid
 
-    fun sendEvent(event: NSDataModel) {
+    suspend fun sendEvent(event: NSDataModel) {
         val eventMap = gson.fromJson(gson.toJson(event), HashMap::class.java)
-        firestore.collection("webrtc_events").document(event.target).set(eventMap)
+        firestore.collection("webrtc_events").document(event.target).set(eventMap).await()
     }
 
     fun subscribeForLatestEvent(callback: (NSDataModel) -> Unit) {

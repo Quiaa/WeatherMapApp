@@ -44,6 +44,17 @@
             app:fabSize="normal" />
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btn_pip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            app:backgroundTint="#FFFFFF"
+            app:tint="#000000"
+            android:src="@drawable/ic_picture_in_picture"
+            app:elevation="6dp"
+            app:fabSize="normal" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/btn_end_call"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

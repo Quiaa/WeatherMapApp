@@ -4,9 +4,11 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.example.weathermapapp.data.repository.AuthRepository
 import com.example.weathermapapp.databinding.ActivityIncomingCallBinding
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -51,9 +53,11 @@ class IncomingCallActivity : AppCompatActivity() {
         }
 
         binding.btnDecline.setOnClickListener {
-            val currentUserId = authRepository.getCurrentUserId()
-            if (currentUserId != null) {
-                webRTCService.endCall(currentUserId, callerId!!)
+            lifecycleScope.launch {
+                val currentUserId = authRepository.getCurrentUserId()
+                if (currentUserId != null) {
+                    webRTCService.endCall(currentUserId, callerId!!)
+                }
             }
             finish()
         }

@@ -89,14 +89,14 @@ class WebRTCService @Inject constructor(
         mainRepository.sendCallRequest(target, isVideoCall)
     }
 
-    fun endCall() {
+    suspend fun endCall() {
         mainRepository.endCall()
         // We're also informing our own UI that the search has been completed.
         listener?.onCallEnded()
         targetUser = null // Clear the target when the search is finished.
     }
 
-    fun endCall(sender: String, target: String) {
+    suspend fun endCall(sender: String, target: String) {
         mainRepository.endCall(sender, target)
     }
 

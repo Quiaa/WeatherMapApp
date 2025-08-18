@@ -36,6 +36,8 @@ class VideoCallActivity : AppCompatActivity() {
         }
     }
 
+    private fun Int.toPx(): Int = (this * resources.displayMetrics.density).toInt()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityVideoCallBinding.inflate(layoutInflater)
@@ -84,6 +86,9 @@ class VideoCallActivity : AppCompatActivity() {
         binding.btnMic.setOnClickListener {
             viewModel.toggleMic()
         }
+        binding.btnPip.setOnClickListener {
+            enterPipMode()
+        }
     }
 
     private fun observeViewModel() {
@@ -103,6 +108,13 @@ class VideoCallActivity : AppCompatActivity() {
         }
     }
 
+    override fun onStop() {
+        super.onStop()
+        if (isFinishing) {
+            viewModel.endCall()
+        }
+    }
+
     override fun onDestroy() {
         viewModel.endCall()
         super.onDestroy()
@@ -110,8 +122,7 @@ class VideoCallActivity : AppCompatActivity() {
         binding.remoteView.release()
     }
 
-    override fun onUserLeaveHint() {
-        super.onUserLeaveHint()
+    private fun enterPipMode() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val params = PictureInPictureParams.Builder()
                 .setAspectRatio(Rational(9, 16))
@@ -120,18 +131,37 @@ class VideoCallActivity : AppCompatActivity() {
         }
     }
 
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        enterPipMode()
+    }
+
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        val layoutParams = binding.localView.layoutParams
         if (isInPictureInPictureMode) {
-            binding.localView.visibility = View.GONE
+            // Shrink the local view for PiP mode
+            layoutParams.width = 48.toPx()
+            layoutParams.height = 60.toPx()
+            binding.localView.layoutParams = layoutParams
+
+            // Hide controls
             binding.btnEndCall.visibility = View.GONE
             binding.btnSwitchCamera.visibility = View.GONE
             binding.btnMic.visibility = View.GONE
+            binding.btnPip.visibility = View.GONE
         } else {
+            // Restore the local view size
+            layoutParams.width = 120.toPx()
+            layoutParams.height = 150.toPx()
+            binding.localView.layoutParams = layoutParams
+
+            // Show controls and local view
             binding.localView.visibility = View.VISIBLE
             binding.btnEndCall.visibility = View.VISIBLE
             binding.btnSwitchCamera.visibility = View.VISIBLE
             binding.btnMic.visibility = View.VISIBLE
+            binding.btnPip.visibility = View.VISIBLE
         }
     }
 }

@@ -166,11 +166,22 @@ class NSWebRTCClient @Inject constructor(
 
     fun closeConnection() {
         try {
-            // Release resources.
+            localAudioTrack?.setEnabled(false)
+            localVideoTrack?.setEnabled(false)
+
             videoCapturer?.stopCapture()
             videoCapturer?.dispose()
-            localStream?.dispose()
+
+            localStream?.let {
+                it.removeTrack(localAudioTrack)
+                it.removeTrack(localVideoTrack)
+                localAudioTrack?.dispose()
+                localVideoTrack?.dispose()
+                peerConnection?.removeStream(it)
+                it.dispose()
+            }
             localStream = null
+
             peerConnection?.close()
             peerConnection = null
         } catch (e: Exception) {

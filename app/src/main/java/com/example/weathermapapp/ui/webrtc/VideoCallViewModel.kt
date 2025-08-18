@@ -1,10 +1,9 @@
 package com.example.weathermapapp.ui.webrtc
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.*
 import com.example.weathermapapp.data.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
 import org.webrtc.SurfaceViewRenderer
 import javax.inject.Inject
 
@@ -41,7 +40,9 @@ class VideoCallViewModel @Inject constructor(
     fun endCall() {
         if (!isCallEnding) {
             isCallEnding = true
-            webRTCService.endCall()
+            viewModelScope.launch {
+                webRTCService.endCall()
+            }
         }
     }
 
