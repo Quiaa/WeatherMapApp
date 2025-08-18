@@ -2,6 +2,7 @@ package com.example.weathermapapp.ui.webrtc
 
 import android.content.Intent
 import android.os.Bundle
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.example.weathermapapp.data.repository.AuthRepository
 import com.example.weathermapapp.databinding.ActivityIncomingCallBinding
@@ -13,6 +14,7 @@ class IncomingCallActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityIncomingCallBinding
     private var callerId: String? = null
+    private val viewModel: IncomingCallViewModel by viewModels()
 
     @Inject
     lateinit var webRTCService: WebRTCService
@@ -33,6 +35,11 @@ class IncomingCallActivity : AppCompatActivity() {
         }
 
         binding.tvCallerId.text = "Incoming call from:\n$callerId"
+        viewModel.fetchCallerName(callerId!!)
+
+        viewModel.callerName.observe(this) { name ->
+            binding.tvCallerId.text = "Incoming call from:\n$name"
+        }
 
         binding.btnAccept.setOnClickListener {
             val intent = Intent(this, VideoCallActivity::class.java).apply {

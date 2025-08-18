@@ -18,6 +18,7 @@ interface UserRepository {
     suspend fun getAllUsersLocations(): Resource<List<UserLocation>>
     suspend fun saveRealtimeUserLocation(location: UserLocation): Resource<Unit>
     fun getRealtimeAllUsersLocations(): Flow<Resource<List<UserLocation>>>
+    suspend fun getUserName(uid: String): String
 }
 
 // Implementation of UserRepository
@@ -26,7 +27,7 @@ class UserRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore
 ) : UserRepository {
 
-    private suspend fun getUserName(uid: String): String {
+    override suspend fun getUserName(uid: String): String {
         return try {
             firestore.collection("users").document(uid).get().await().getString("name") ?: "Unknown User"
         } catch (e: Exception) {
