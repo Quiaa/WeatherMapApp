@@ -1,31 +1,28 @@
 package com.example.weathermapapp.ui.map
 
+import android.view.View
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.weathermapapp.data.model.UserLocation
-import com.example.weathermapapp.data.model.WeatherResponse
+import com.example.weathermapapp.data.model.WeatherDataWrapper
+import com.example.weathermapapp.data.model.webrtc.NSDataModelType
 import com.example.weathermapapp.data.repository.AuthRepository
 import com.example.weathermapapp.data.repository.UserRepository
 import com.example.weathermapapp.data.repository.WeatherRepository
-import com.example.weathermapapp.util.Resource
-import kotlinx.coroutines.launch
+import com.example.weathermapapp.data.repository.webrtc.MainRepository
+import com.example.weathermapapp.ui.main.WeatherUIData
 import com.example.weathermapapp.util.LocationProvider
+import com.example.weathermapapp.util.Resource
+import com.example.weathermapapp.util.TimeUtils
 import com.mapbox.geojson.Point
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import javax.inject.Inject
-import android.view.View
-import androidx.lifecycle.MediatorLiveData
-import com.example.weathermapapp.data.model.WeatherDataWrapper
-import com.example.weathermapapp.ui.main.WeatherUIData
-import com.example.weathermapapp.util.TimeUtils
-import com.example.weathermapapp.data.model.webrtc.NSDataModel
-import com.example.weathermapapp.data.model.webrtc.NSDataModelType
-import com.example.weathermapapp.data.repository.webrtc.MainRepository
-import com.example.weathermapapp.ui.webrtc.WebRTCService
 
 @HiltViewModel
 class MapViewModel @Inject constructor(

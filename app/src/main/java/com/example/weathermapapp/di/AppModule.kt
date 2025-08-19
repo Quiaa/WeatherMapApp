@@ -7,8 +7,8 @@ import com.example.weathermapapp.data.db.WeatherDatabase
 import com.example.weathermapapp.data.repository.webrtc.FirebaseClient
 import com.example.weathermapapp.data.repository.webrtc.MainRepository
 import com.example.weathermapapp.data.repository.webrtc.NSWebRTCClient
-import com.example.weathermapapp.network.api.WeatherApiService
 import com.example.weathermapapp.network.api.OllamaApiService
+import com.example.weathermapapp.network.api.WeatherApiService
 import com.example.weathermapapp.util.LocationProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore

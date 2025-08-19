@@ -1,6 +1,5 @@
 package com.example.weathermapapp.ui.webrtc
 
-import com.example.weathermapapp.data.model.webrtc.NSDataModel
 import com.example.weathermapapp.data.model.webrtc.NSDataModelType
 import com.example.weathermapapp.data.repository.webrtc.MainRepository
 import kotlinx.coroutines.CoroutineScope
@@ -8,7 +7,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import org.webrtc.*
+import org.webrtc.DataChannel
+import org.webrtc.IceCandidate
+import org.webrtc.MediaStream
+import org.webrtc.PeerConnection
+import org.webrtc.RtpReceiver
+import org.webrtc.SurfaceViewRenderer
 import javax.inject.Inject
 import javax.inject.Singleton
 

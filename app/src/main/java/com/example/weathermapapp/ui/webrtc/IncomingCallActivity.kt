@@ -6,6 +6,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.weathermapapp.data.repository.AuthRepository
+import com.example.weathermapapp.data.repository.webrtc.MainRepository
 import com.example.weathermapapp.databinding.ActivityIncomingCallBinding
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -22,6 +23,8 @@ class IncomingCallActivity : AppCompatActivity() {
     lateinit var webRTCService: WebRTCService
     @Inject
     lateinit var authRepository: AuthRepository
+    @Inject
+    lateinit var mainRepository: MainRepository
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,6 +47,9 @@ class IncomingCallActivity : AppCompatActivity() {
         }
 
         binding.btnAccept.setOnClickListener {
+            mainRepository.clearLatestEvent()
+            CallManager.setCallState(CallManager.CallState.IN_PROGRESS)
+
             val intent = Intent(this, VideoCallActivity::class.java).apply {
                 putExtra("target", callerId)
                 putExtra("isCaller", false)
@@ -58,8 +64,16 @@ class IncomingCallActivity : AppCompatActivity() {
                 if (currentUserId != null) {
                     webRTCService.endCall(currentUserId, callerId!!)
                 }
+                mainRepository.clearLatestEvent()
             }
+            CallManager.setCallState(CallManager.CallState.IDLE)
             finish()
+        }
+    }
+    override fun onDestroy() {
+        super.onDestroy()
+        if (isFinishing && CallManager.callState.value == CallManager.CallState.INCOMING) {
+            CallManager.setCallState(CallManager.CallState.IDLE)
         }
     }
 }

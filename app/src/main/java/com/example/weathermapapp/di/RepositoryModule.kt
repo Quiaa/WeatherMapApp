@@ -1,6 +1,11 @@
 package com.example.weathermapapp.di
 
-import com.example.weathermapapp.data.repository.*
+import com.example.weathermapapp.data.repository.AuthRepository
+import com.example.weathermapapp.data.repository.AuthRepositoryImpl
+import com.example.weathermapapp.data.repository.UserRepository
+import com.example.weathermapapp.data.repository.UserRepositoryImpl
+import com.example.weathermapapp.data.repository.WeatherRepository
+import com.example.weathermapapp.data.repository.WeatherRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn

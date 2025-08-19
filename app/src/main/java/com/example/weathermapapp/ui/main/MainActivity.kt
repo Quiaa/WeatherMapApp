@@ -1,50 +1,35 @@
 package com.example.weathermapapp.ui.main
 
-import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Bundle
-import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import com.bumptech.glide.Glide
 import com.example.weathermapapp.data.model.UserLocation
 import com.example.weathermapapp.databinding.ActivityMainBinding
 import com.example.weathermapapp.ui.auth.LoginActivity
 import com.example.weathermapapp.ui.map.MapManager
-import com.example.weathermapapp.ui.main.WeatherUIData
 import com.example.weathermapapp.ui.map.MapViewModel
+import com.example.weathermapapp.ui.webrtc.IncomingCallService
 import com.example.weathermapapp.util.Resource
-import com.example.weathermapapp.util.TimeUtils
 import com.mapbox.geojson.Point
 import com.mapbox.maps.plugin.gestures.OnMapClickListener
 import dagger.hilt.android.AndroidEntryPoint
-import androidx.appcompat.app.AlertDialog
-import com.example.weathermapapp.data.model.webrtc.NSDataModel
-import com.example.weathermapapp.ui.webrtc.IncomingCallActivity
-import com.example.weathermapapp.ui.webrtc.IncomingCallService
-import com.example.weathermapapp.ui.webrtc.VideoCallActivity
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private val mapViewModel: MapViewModel by viewModels()
+    private val mainViewModel: MainViewModel by viewModels()
     private lateinit var mapManager: MapManager
 
-    private val locationPermissionRequest = registerForActivityResult(
+    private val permissionRequest = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        if (permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false) ||
-            permissions.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false)
-        ) {
-            mapViewModel.fetchCurrentDeviceLocation()
-        } else {
-            Toast.makeText(this, "Location permission denied", Toast.LENGTH_SHORT).show()
-        }
+        mainViewModel.onPermissionResult(permissions)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -64,8 +49,8 @@ class MainActivity : AppCompatActivity() {
 
         setupClickListeners()
         observeViewModels()
-        checkAndRequestLocationPermission()
-        startIncomingCallService()
+
+        mainViewModel.onMainActivityReady()
     }
 
     private fun startIncomingCallService() {
@@ -85,7 +70,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnCurrentLocation.setOnClickListener {
-            checkAndRequestLocationPermission()
+            mainViewModel.onMainActivityReady()
         }
 
         binding.btnRefresh.setOnClickListener {
@@ -94,7 +79,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun observeViewModels() {
-        // Observer for the current user's saved location from Firestore.
+        mainViewModel.permissionRequest.observe(this) { event ->
+            event.getContentIfNotHandled()?.let { permissions ->
+                permissionRequest.launch(permissions)
+            }
+        }
+
+        mainViewModel.startLocationUpdates.observe(this) { event ->
+            event.getContentIfNotHandled()?.let {
+                mapViewModel.startRealtimeLocationUpdates()
+                mapViewModel.fetchCurrentDeviceLocation()
+            }
+        }
+
         mapViewModel.userLocation.observe(this) { resource ->
             when (resource) {
                 is Resource.Success -> {
@@ -123,7 +120,6 @@ class MainActivity : AppCompatActivity() {
             updateWeatherUI(uiState)
         }
 
-        // Observer for the result of a current device location request.
         mapViewModel.currentDeviceLocation.observe(this) { resource ->
             when (resource) {
                 is Resource.Success -> {
@@ -168,19 +164,6 @@ class MainActivity : AppCompatActivity() {
             Glide.with(this)
                 .load(uiState.iconUrl)
                 .into(binding.ivWeatherIcon)
-        }
-    }
-
-    private fun checkAndRequestLocationPermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
-            PackageManager.PERMISSION_GRANTED
-        ) {
-            mapViewModel.startRealtimeLocationUpdates()
-            mapViewModel.fetchCurrentDeviceLocation()
-        } else {
-            locationPermissionRequest.launch(
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-            )
         }
     }
 

@@ -6,8 +6,8 @@ import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import com.example.weathermapapp.ui.main.MainActivity
 import com.example.weathermapapp.databinding.ActivityRegisterBinding
+import com.example.weathermapapp.ui.main.MainActivity
 import com.example.weathermapapp.util.Resource
 import dagger.hilt.android.AndroidEntryPoint
 

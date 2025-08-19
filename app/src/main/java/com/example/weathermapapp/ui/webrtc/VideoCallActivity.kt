@@ -123,6 +123,7 @@ class VideoCallActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         viewModel.endCall()
+        CallManager.setCallState(CallManager.CallState.IDLE)
         super.onDestroy()
         binding.localView.release()
         binding.remoteView.release()

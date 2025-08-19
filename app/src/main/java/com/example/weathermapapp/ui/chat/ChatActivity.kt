@@ -8,6 +8,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.weathermapapp.databinding.ActivityChatBinding
+import com.example.weathermapapp.ui.webrtc.CallManager
 import com.example.weathermapapp.ui.webrtc.VideoCallActivity
 import com.example.weathermapapp.util.TtsManager
 import dagger.hilt.android.AndroidEntryPoint
@@ -60,12 +61,13 @@ class ChatActivity : AppCompatActivity() {
         if (!isBot) {
             binding.btnVideoCall.visibility = View.VISIBLE
             binding.btnVideoCall.setOnClickListener {
+                CallManager.setCallState(CallManager.CallState.IN_PROGRESS)
                 val intent = Intent(this, VideoCallActivity::class.java).apply {
                     putExtra("target", otherUserId)
-                    putExtra("isCaller", true) // This user is the caller.
+                    putExtra("isCaller", true)
                 }
-                chatViewModel.startVideoCall() // Send the call request.
-                startActivity(intent) // Open the video chat screen.
+                chatViewModel.startVideoCall()
+                startActivity(intent)
             }
         }
     }

@@ -2,13 +2,13 @@ package com.example.weathermapapp.data.repository
 
 import com.example.weathermapapp.data.model.UserLocation
 import com.example.weathermapapp.util.Resource
-import kotlinx.coroutines.flow.Flow
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.tasks.await
 import com.google.firebase.firestore.ktx.snapshots
 import com.google.firebase.firestore.ktx.toObject
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 // Interface for UserRepository

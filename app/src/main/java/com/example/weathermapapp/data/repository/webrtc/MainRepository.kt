@@ -9,7 +9,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
-import org.webrtc.*
+import org.webrtc.IceCandidate
+import org.webrtc.PeerConnection
+import org.webrtc.SessionDescription
+import org.webrtc.SurfaceViewRenderer
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -167,6 +170,10 @@ class MainRepository @Inject constructor(
 
     fun toggleAudio(isMuted: Boolean) {
         webRTCClient.toggleAudio(isMuted)
+    }
+
+    fun clearLatestEvent() {
+        firebaseClient.clearLatestEvent()
     }
 
     override fun onTransferDataToOtherPeer(model: NSDataModel) {

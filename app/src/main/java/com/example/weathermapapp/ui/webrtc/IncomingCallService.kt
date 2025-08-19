@@ -39,7 +39,8 @@ class IncomingCallService : Service() {
 
     private fun observeIncomingCalls() {
         mainRepository.signalingEvent.onEach {
-            if (it.type == NSDataModelType.StartVideoCall) {
+            if (it.type == NSDataModelType.StartVideoCall && CallManager.callState.value == CallManager.CallState.IDLE) {
+                CallManager.setCallState(CallManager.CallState.INCOMING)
                 val intent = Intent(this, IncomingCallActivity::class.java).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     putExtra("callerId", it.sender)
